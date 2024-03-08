@@ -1,13 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
 )
 
 type MetricType string
-type MetricName string
-type GaugeValue float64
-type CounterValue int64
+
+type Metric struct {
+	Type  MetricType
+	Name  string
+	Value string
+}
 
 const (
 	Gauge   MetricType = "gauge"
@@ -22,12 +27,42 @@ func (mt MetricType) IsValid() bool {
 
 }
 
-type MemStorage struct {
-	db []string
+func (mt Metric) IsValidValue() bool {
+	switch mt.Type {
+	case Gauge:
+		_, err := strconv.ParseFloat(mt.Value, 64)
+		return err == nil
+	case Counter:
+		_, err := strconv.ParseInt(mt.Value, 10, 64)
+		return err == nil
+	default:
+		return false
+	}
 }
 
 type Storage interface {
-	Add(metric_name string) bool
+	Add(metric Metric)
+}
+
+type MemStorage struct {
+	gauge   map[string]float64
+	counter map[string]int64
+}
+
+var storage = MemStorage{
+	counter: make(map[string]int64),
+	gauge:   make(map[string]float64),
+}
+
+func (db *MemStorage) Add(metric Metric) {
+	switch metric.Type {
+	case Gauge:
+		val, _ := strconv.ParseFloat(metric.Value, 64)
+		db.gauge[metric.Name] = val
+	case Counter:
+		val, _ := strconv.ParseInt(metric.Value, 10, 64)
+		db.counter[metric.Name] += val
+	}
 }
 
 func metricPage(w http.ResponseWriter, r *http.Request) {
@@ -36,13 +71,21 @@ func metricPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var mt MetricType = MetricType(r.PathValue("metric_type"))
-	// var mn MetricName = MetricName(r.PathValue("metric_name"))
+	var metric = Metric{}
 
-	if !mt.IsValid() {
+	metric.Type = MetricType(r.PathValue("metric_type"))
+	metric.Name = r.PathValue("metric_name")
+	metric.Value = r.PathValue("metric_value")
+
+	if !metric.Type.IsValid() || !metric.IsValidValue() {
 		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
+
+	storage.Add(metric)
+
+	fmt.Println("counter", storage.counter)
+	fmt.Println("gauge", storage.gauge)
 
 	w.WriteHeader(200)
 }
