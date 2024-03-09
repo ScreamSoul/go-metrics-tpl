@@ -11,8 +11,8 @@ type metricServer struct {
 	store *repositories.MetricStorage
 }
 
-func NewMetricServer(metric_repo repositories.MetricStorage) *metricServer {
-	return &metricServer{store: &metric_repo}
+func NewMetricServer(metricRepo repositories.MetricStorage) *metricServer {
+	return &metricServer{store: &metricRepo}
 }
 
 func (ms *metricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
@@ -21,18 +21,18 @@ func (ms *metricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var metric_obj = metric.Metric{}
+	var metricObj = metric.Metric{}
 
-	metric_obj.Type = metric.MetricType(r.PathValue("metric_type"))
-	metric_obj.Name = r.PathValue("metric_name")
-	metric_obj.Value = r.PathValue("metric_value")
+	metricObj.Type = metric.MetricType(r.PathValue("metric_type"))
+	metricObj.Name = r.PathValue("metric_name")
+	metricObj.Value = r.PathValue("metric_value")
 
-	if !metric_obj.Type.IsValid() || !metric_obj.IsValidValue() {
+	if !metricObj.Type.IsValid() || !metricObj.IsValidValue() {
 		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
 
-	(*ms.store).Add(metric_obj)
+	(*ms.store).Add(metricObj)
 
 	w.WriteHeader(200)
 }

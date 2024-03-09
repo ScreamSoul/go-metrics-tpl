@@ -10,10 +10,10 @@ import (
 func main() {
 	mux := http.NewServeMux()
 
-	var metric_server = handlers.NewMetricServer(
+	var metricServer = handlers.NewMetricServer(
 		memory.NewMemStorage(),
 	)
-	mux.HandleFunc("/update/{metric_type}/{metric_name}/{metric_value}", metric_server.UpdateMetric)
+	mux.HandleFunc("/update/{metric_type}/{metric_name}/{metric_value}", metricServer.UpdateMetric)
 
 	if err := http.ListenAndServe(":8080", mux); err != nil {
 		panic(err)

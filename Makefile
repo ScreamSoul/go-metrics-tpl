@@ -1,8 +1,8 @@
 statictest:
-	echo "Start statictest"
-	go vet -vettool=statictest ./...
+	@echo "Start statictest"
+	go vet -vettool=./statictest ./...
 
-metrictest: statictest
+metrictest:
 	@echo "Build server"
 	@cd cmd/server && go build -buildvcs=false -o server main.go
 	@echo "Build agent"
