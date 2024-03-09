@@ -8,4 +8,4 @@ metrictest:
 	@echo "Build agent"
 	@cd cmd/agent && go build -buildvcs=false -o agent main.go
 	@echo "Start metrictest"
-	./metricstest -test.v -test.run=^TestIteration$(iter)$$ -binary-path=cmd/server/server
+	./metricstest -test.v -test.run=^TestIteration$(iter)$$ -binary-path=cmd/server/server -agent-binary-path=cmd/agent/agent -server-port=8080 -source-path=.
