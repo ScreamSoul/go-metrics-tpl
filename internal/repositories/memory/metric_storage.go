@@ -2,11 +2,13 @@ package memory
 
 import (
 	"strconv"
+	"sync"
 
 	"github.com/screamsoul/go-metrics-tpl/internal/models/metric"
 )
 
 type MemStorage struct {
+	sync.Mutex
 	gauge   map[string]float64
 	counter map[string]int64
 }
@@ -19,6 +21,9 @@ func NewMemStorage() *MemStorage {
 }
 
 func (db *MemStorage) Add(m metric.Metric) {
+	db.Lock()
+	defer db.Unlock()
+
 	switch m.Type {
 	case metric.Gauge:
 		val, _ := strconv.ParseFloat(m.Value, 64)

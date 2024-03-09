@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/screamsoul/go-metrics-tpl/internal/models/metric"
@@ -33,6 +34,6 @@ func (ms *metricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 	}
 
 	(*ms.store).Add(metricObj)
-
+	fmt.Println(metricObj)
 	w.WriteHeader(200)
 }
