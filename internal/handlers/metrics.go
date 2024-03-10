@@ -8,19 +8,19 @@ import (
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories"
 )
 
-type metricServer struct {
+type MetricServer struct {
 	store *repositories.MetricStorage
 }
 
-func NewMetricServer(metricRepo repositories.MetricStorage) *metricServer {
-	return &metricServer{store: &metricRepo}
+func NewMetricServer(metricRepo repositories.MetricStorage) *MetricServer {
+	return &MetricServer{store: &metricRepo}
 }
 
-func (ms *metricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "", http.StatusMethodNotAllowed)
-		return
-	}
+func (ms *MetricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
+	// if r.Method != http.MethodPost {
+	// 	http.Error(w, "", http.StatusMethodNotAllowed)
+	// 	return
+	// }
 
 	var metricObj = metric.Metric{}
 
