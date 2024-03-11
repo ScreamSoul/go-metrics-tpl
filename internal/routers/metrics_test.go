@@ -50,6 +50,7 @@ func TestMetricRouter(t *testing.T) {
 	for _, v := range testTable {
 		resp, _ := testRequest(t, ts, v.method, v.url)
 		assert.Equal(t, v.status, resp.StatusCode)
+		resp.Body.Close()
 	}
 
 }
