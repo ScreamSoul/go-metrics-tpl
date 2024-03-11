@@ -40,11 +40,11 @@ func (db *MockMetricStorage) Get(mt metric.MetricType, mn metric.MetricName) (st
 	switch mt {
 	case metric.Gauge:
 		if v, ok := db.Gauge[mn]; ok {
-			return fmt.Sprintf("%v", v), nil
+			return fmt.Sprint(v), nil
 		}
 	case metric.Counter:
 		if v, ok := db.Counter[mn]; ok {
-			return fmt.Sprintf("%v", v), nil
+			return fmt.Sprint(v), nil
 		}
 	}
 
@@ -63,7 +63,7 @@ func (db *MockMetricStorage) List() (metics []metric.Metric) {
 		metics = append(metics, metric.Metric{
 			Type:  metric.Counter,
 			Name:  n,
-			Value: metric.MetricValue(fmt.Sprintf("%d", v)),
+			Value: metric.MetricValue(fmt.Sprint(v)),
 		})
 	}
 	return

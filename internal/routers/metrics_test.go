@@ -81,8 +81,8 @@ func TestValueRouter(t *testing.T) {
 		text   string
 	}{
 		{"fail type", "/value/fake_gauge/MetricGauge1", "GET", http.StatusBadRequest, ""},
-		{"value gauge ok", "/value/gauge/MetricGauge1", "GET", http.StatusOK, fmt.Sprintf("%v", mockDB.Gauge["MetricGauge1"])},
-		{"value counter ok", "/value/counter/MetricCounter1", "GET", http.StatusOK, fmt.Sprintf("%v", mockDB.Counter["MetricCounter1"])},
+		{"value gauge ok", "/value/gauge/MetricGauge1", "GET", http.StatusOK, fmt.Sprint(mockDB.Gauge["MetricGauge1"])},
+		{"value counter ok", "/value/counter/MetricCounter1", "GET", http.StatusOK, fmt.Sprint(mockDB.Counter["MetricCounter1"])},
 		{"value counter not found", "/value/counter/MetricCounter3", "GET", http.StatusNotFound, ""},
 		{"value gauge not found", "/value/gauge/MetricGauge3", "GET", http.StatusNotFound, ""},
 	}

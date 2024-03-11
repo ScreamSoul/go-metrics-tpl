@@ -40,11 +40,11 @@ func (db *MemStorage) Get(mt metric.MetricType, mn metric.MetricName) (string, e
 	switch mt {
 	case metric.Gauge:
 		if v, ok := db.gauge[mn]; ok {
-			return fmt.Sprintf("%v", v), nil
+			return fmt.Sprint(v), nil
 		}
 	case metric.Counter:
 		if v, ok := db.counter[mn]; ok {
-			return fmt.Sprintf("%v", v), nil
+			return fmt.Sprint(v), nil
 		}
 	}
 
@@ -56,14 +56,14 @@ func (db *MemStorage) List() (metics []metric.Metric) {
 		metics = append(metics, metric.Metric{
 			Type:  metric.Gauge,
 			Name:  n,
-			Value: metric.MetricValue(fmt.Sprintf("%v", v)),
+			Value: metric.MetricValue(fmt.Sprint(v)),
 		})
 	}
 	for n, v := range db.counter {
 		metics = append(metics, metric.Metric{
 			Type:  metric.Counter,
 			Name:  n,
-			Value: metric.MetricValue(fmt.Sprintf("%v", v)),
+			Value: metric.MetricValue(fmt.Sprint(v)),
 		})
 	}
 	return
