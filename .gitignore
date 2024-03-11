@@ -23,6 +23,7 @@ vendor/
 # IDEs directories
 .idea
 .vscode
+.DS_Store
 
 __debug_*
 metricstest*
