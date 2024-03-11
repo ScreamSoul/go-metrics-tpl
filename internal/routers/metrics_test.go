@@ -1,32 +1,32 @@
 package routers
 
 import (
-	"io"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-resty/resty/v2"
+	"github.com/screamsoul/go-metrics-tpl/internal/models/metric"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func testRequest(t *testing.T, ts *httptest.Server, method,
-	path string) (*http.Response, string) {
-	req, err := http.NewRequest(method, ts.URL+path, nil)
-	require.NoError(t, err)
+	path string) *resty.Response {
 
-	resp, err := ts.Client().Do(req)
-	require.NoError(t, err)
-	defer resp.Body.Close()
+	req := resty.New().R()
+	req.Method = method
+	req.URL = ts.URL + path
 
-	respBody, err := io.ReadAll(resp.Body)
-	require.NoError(t, err)
+	resp, err := req.Send()
+	require.NoError(t, err, "error making HTTP request")
 
-	return resp, string(respBody)
+	return resp
 }
 
-func TestMetricRouter(t *testing.T) {
+func TestUpdateRouter(t *testing.T) {
 
 	ts := httptest.NewServer(
 		MetricRouter(
@@ -48,8 +48,96 @@ func TestMetricRouter(t *testing.T) {
 		{"/update/gauge", "POST", http.StatusNotFound},
 	}
 	for _, v := range testTable {
-		resp, _ := testRequest(t, ts, v.method, v.url)
-		assert.Equal(t, v.status, resp.StatusCode)
+		resp := testRequest(t, ts, v.method, v.url)
+		assert.Equal(t, v.status, resp.StatusCode())
+	}
+
+}
+
+func TestValueRouter(t *testing.T) {
+	mockDB := repositories.MockMetricStorage{
+		Counter: map[metric.MetricName]int64{
+			"MetricCounter1": 123,
+			"MetricCounter2": 321,
+		},
+		Gauge: map[metric.MetricName]float64{
+			"MetricGauge1": 1.12,
+			"MetricGauge2": 1.32,
+		},
+	}
+
+	ts := httptest.NewServer(
+		MetricRouter(
+			&mockDB,
+		),
+	)
+	defer ts.Close()
+
+	var testTable = []struct {
+		name   string
+		url    string
+		method string
+		status int
+		text   string
+	}{
+		{"fail type", "/value/fake_gauge/MetricGauge1", "GET", http.StatusBadRequest, ""},
+		{"value gauge ok", "/value/gauge/MetricGauge1", "GET", http.StatusOK, fmt.Sprintf("%v", mockDB.Gauge["MetricGauge1"])},
+		{"value counter ok", "/value/counter/MetricCounter1", "GET", http.StatusOK, fmt.Sprintf("%v", mockDB.Counter["MetricCounter1"])},
+		{"value counter not found", "/value/counter/MetricCounter3", "GET", http.StatusNotFound, ""},
+		{"value gauge not found", "/value/gauge/MetricGauge3", "GET", http.StatusNotFound, ""},
+	}
+	for _, v := range testTable {
+		t.Run(v.name, func(t *testing.T) {
+			resp := testRequest(t, ts, v.method, v.url)
+			require.Equal(t, v.status, resp.StatusCode())
+			if v.status == http.StatusOK {
+				assert.Equal(t, v.text, string(resp.Body()))
+			}
+		})
+
+	}
+
+}
+
+func TestListRouter(t *testing.T) {
+	mockDB := repositories.MockMetricStorage{
+		Counter: map[metric.MetricName]int64{
+			"MetricCounter1": 123,
+			"MetricCounter2": 321,
+		},
+		Gauge: map[metric.MetricName]float64{
+			"MetricGauge1": 1.12,
+			"MetricGauge2": 1.32,
+		},
+	}
+
+	var respOkText = `[{"type":"gauge","name":"MetricGauge1","value":"1.12"},{"type":"gauge","name":"MetricGauge2","value":"1.32"},{"type":"counter","name":"MetricCounter1","value":"123"},{"type":"counter","name":"MetricCounter2","value":"321"}]`
+
+	ts := httptest.NewServer(
+		MetricRouter(
+			&mockDB,
+		),
+	)
+	defer ts.Close()
+
+	var testTable = []struct {
+		name   string
+		url    string
+		method string
+		status int
+		text   string
+	}{
+		{"list json ok", "/", "GET", http.StatusOK, respOkText},
+	}
+	for _, v := range testTable {
+		t.Run(v.name, func(t *testing.T) {
+			resp := testRequest(t, ts, v.method, v.url)
+			require.Equal(t, v.status, resp.StatusCode())
+			if v.status == http.StatusOK {
+				assert.JSONEq(t, string(resp.Body()), v.text)
+			}
+		})
+
 	}
 
 }

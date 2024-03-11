@@ -3,11 +3,13 @@ package metric
 import "strconv"
 
 type MetricType string
+type MetricName string
+type MetricValue string
 
 type Metric struct {
-	Type  MetricType
-	Name  string
-	Value string
+	Type  MetricType  `json:"type"`
+	Name  MetricName  `json:"name"`
+	Value MetricValue `json:"value"`
 }
 
 const (
@@ -26,10 +28,10 @@ func (mt MetricType) IsValid() bool {
 func (mt Metric) IsValidValue() bool {
 	switch mt.Type {
 	case Gauge:
-		_, err := strconv.ParseFloat(mt.Value, 64)
+		_, err := strconv.ParseFloat(string(mt.Value), 64)
 		return err == nil
 	case Counter:
-		_, err := strconv.ParseInt(mt.Value, 10, 64)
+		_, err := strconv.ParseInt(string(mt.Value), 10, 64)
 		return err == nil
 	default:
 		return false

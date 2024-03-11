@@ -1,3 +1,4 @@
+
 statictest:
 	@echo "Start statictest"
 	go vet -vettool=./statictest ./...

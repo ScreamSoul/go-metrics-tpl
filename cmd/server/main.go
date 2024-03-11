@@ -8,7 +8,9 @@ import (
 )
 
 func main() {
-	var router = routers.MetricRouter(memory.NewMemStorage())
+	var router = routers.MetricRouter(
+		memory.NewMemStorage(),
+	)
 	if err := http.ListenAndServe(":8080", router); err != nil {
 		panic(err)
 	}

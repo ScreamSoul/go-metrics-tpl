@@ -124,8 +124,8 @@ func main() {
 			for f := range fields {
 				var value = fmt.Sprintf("%v", <-values)
 				metric := metric.Metric{
-					Name:  f.Name,
-					Value: value,
+					Name:  metric.MetricName(f.Name),
+					Value: metric.MetricValue(value),
 					Type:  metric.MetricType(f.Tag.Get("metric_type")),
 				}
 				go metrics.sendMetric(serverURL.GetUpdateMetricURL(metric))

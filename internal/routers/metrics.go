@@ -12,6 +12,9 @@ func MetricRouter(storage repositories.MetricStorage) chi.Router {
 	)
 	r := chi.NewRouter()
 
+	r.Get("/", metricServer.ListMetrics)
+	r.Get("/value/{metric_type}/{metric_name}", metricServer.GetMetricValue)
 	r.Post("/update/{metric_type}/{metric_name}/{metric_value}", metricServer.UpdateMetric)
+
 	return r
 }
