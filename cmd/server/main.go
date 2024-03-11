@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"net/http"
 
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories/memory"
@@ -8,10 +10,15 @@ import (
 )
 
 func main() {
+	flag.Parse()
+
 	var router = routers.MetricRouter(
 		memory.NewMemStorage(),
 	)
-	if err := http.ListenAndServe(":8080", router); err != nil {
+
+	fmt.Println("Starting server on ", appFlags.listenHost)
+
+	if err := http.ListenAndServe(appFlags.listenHost, router); err != nil {
 		panic(err)
 	}
 }

@@ -89,7 +89,9 @@ func (m *Metrics) sendMetric(uploadURL string) {
 
 	resp, err := http.Post(uploadURL, "text/plain", bytes.NewBufferString(""))
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		// panic(err)
+		return
 	}
 	fmt.Printf("Url: %s; Status: %s\r\n", uploadURL, resp.Status)
 
@@ -107,9 +109,9 @@ func (su ServerURL) GetUpdateMetricURL(metric metric.Metric) string {
 func main() {
 	metrics := &Metrics{}
 
-	pollInterval := 2 * time.Second
-	reportInterval := 10 * time.Second
-	serverURL := ServerURL{baseURL: "http://127.0.0.1:8080/"} // Замените на реальный URL
+	pollInterval := time.Duration(appFlags.pollInterval) * time.Second
+	reportInterval := time.Duration(appFlags.reportInterval) * time.Second
+	serverURL := ServerURL{baseURL: fmt.Sprintf("http://%s/", appFlags.listenServerHost)}
 
 	go func() {
 		for {
