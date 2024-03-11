@@ -107,11 +107,13 @@ func (su ServerURL) GetUpdateMetricURL(metric metric.Metric) string {
 }
 
 func main() {
+	parseConfig()
+
 	metrics := &Metrics{}
 
-	pollInterval := time.Duration(appFlags.pollInterval) * time.Second
-	reportInterval := time.Duration(appFlags.reportInterval) * time.Second
-	serverURL := ServerURL{baseURL: fmt.Sprintf("http://%s/", appFlags.listenServerHost)}
+	pollInterval := time.Duration(cfg.PollInterval) * time.Second
+	reportInterval := time.Duration(cfg.ReportInterval) * time.Second
+	serverURL := ServerURL{baseURL: fmt.Sprintf("http://%s/", cfg.ListenServerHost)}
 
 	go func() {
 		for {
