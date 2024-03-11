@@ -109,7 +109,7 @@ func main() {
 
 	pollInterval := 2 * time.Second
 	reportInterval := 10 * time.Second
-	serverURL := ServerURL{baseURL: "http://127.0.0.1:8080/"} // Замените на реальный URL
+	serverURL := ServerURL{baseURL: "http://localhost:8080/"} // Замените на реальный URL
 
 	go func() {
 		for {
