@@ -4,12 +4,16 @@ import (
 	"flag"
 )
 
-type AppFlags struct {
-	listenHost string
+type Config struct {
+	ListenHost string
 }
 
-var appFlags = AppFlags{}
+var cfg Config
 
 func init() {
-	flag.StringVar(&appFlags.listenHost, "a", "localhost:8080", "address and port to run server")
+	flag.StringVar(&cfg.ListenHost, "a", "localhost:8080", "address and port to run server")
+}
+
+func parseConfig() {
+	flag.Parse()
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"net/http"
 
@@ -10,15 +9,15 @@ import (
 )
 
 func main() {
-	flag.Parse()
+	parseConfig()
 
 	var router = routers.MetricRouter(
 		memory.NewMemStorage(),
 	)
 
-	fmt.Println("Starting server on ", appFlags.listenHost)
+	fmt.Println("Starting server on ", cfg.ListenHost)
 
-	if err := http.ListenAndServe(appFlags.listenHost, router); err != nil {
+	if err := http.ListenAndServe(cfg.ListenHost, router); err != nil {
 		panic(err)
 	}
 }
