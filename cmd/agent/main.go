@@ -107,6 +107,8 @@ func (su ServerURL) GetUpdateMetricURL(metric metric.Metric) string {
 }
 
 func main() {
+	parseConfig()
+
 	metrics := &Metrics{}
 
 	pollInterval := time.Duration(cfg.PollInterval) * time.Second
