@@ -89,7 +89,9 @@ func (m *Metrics) sendMetric(uploadURL string) {
 
 	resp, err := http.Post(uploadURL, "text/plain", bytes.NewBufferString(""))
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
+
 	}
 	fmt.Printf("Url: %s; Status: %s\r\n", uploadURL, resp.Status)
 
