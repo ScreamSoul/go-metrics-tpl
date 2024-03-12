@@ -1,7 +1,6 @@
 package metric
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 )
@@ -19,9 +18,7 @@ type Metric struct {
 func NewMetric(mType string, mName string, mValue string) (Metric, error) {
 
 	if !MetricType(mType).IsValid() {
-		return Metric{}, errors.New(
-			fmt.Sprintf("metric type `%s` not valid", mType),
-		)
+		return Metric{}, fmt.Errorf("metric type `%s` not valid", mType)
 	}
 
 	return Metric{

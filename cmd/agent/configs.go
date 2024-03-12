@@ -13,13 +13,13 @@ type config struct {
 	PollInterval     int    `env:"POLL_INTERVAL"`
 }
 
-func (c *config) GetServerUrl() string {
+func (c *config) GetServerURL() string {
 	return fmt.Sprintf("http://%s", c.ListenServerHost)
 
 }
 
 func (c *config) GetUpdateMetricURL(mType, mName, mValue string) string {
-	return fmt.Sprintf("%s/update/%s/%s/%s", c.GetServerUrl(), mType, mName, mValue)
+	return fmt.Sprintf("%s/update/%s/%s/%s", c.GetServerURL(), mType, mName, mValue)
 }
 
 var cfg config

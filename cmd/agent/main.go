@@ -24,7 +24,7 @@ func main() {
 	parseConfig()
 
 	fmt.Print("start agent; ")
-	fmt.Print("metric server: ", cfg.GetServerUrl(), "; ")
+	fmt.Print("metric server: ", cfg.GetServerURL(), "; ")
 
 	metricRepo := memory.NewCollectionMetricStorage()
 
