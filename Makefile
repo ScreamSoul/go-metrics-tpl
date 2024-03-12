@@ -1,7 +1,5 @@
-
 statictest:
-	@echo "Start statictest"
-	go vet -vettool=./statictest ./...
+	golangci-lint run
 
 metrictest:
 	@echo "Build server"

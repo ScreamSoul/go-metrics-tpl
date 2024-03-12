@@ -46,7 +46,11 @@ func (ms *MetricServer) GetMetricValue(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusNotFound)
 		return
 	}
-	w.Write([]byte(mv))
+
+	if _, err := w.Write([]byte(mv)); err != nil {
+		fmt.Println("Error writing response:", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
 }
 
 func (ms *MetricServer) ListMetrics(w http.ResponseWriter, r *http.Request) {
