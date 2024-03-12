@@ -7,9 +7,9 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
-var cfg Config
+var cfg config
 
-type Config struct {
+type config struct {
 	ListenAddress string `env:"ADDRESS"`
 }
 

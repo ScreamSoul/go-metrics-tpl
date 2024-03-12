@@ -18,13 +18,13 @@ func NewMetricServer(metricRepo repositories.MetricStorage) *MetricServer {
 }
 
 func (ms *MetricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
-	var metricObj = metric.Metric{}
+	var metricObj, err = metric.NewMetric(
+		r.PathValue("metric_type"),
+		r.PathValue("metric_name"),
+		r.PathValue("metric_value"),
+	)
 
-	metricObj.Type = metric.MetricType(r.PathValue("metric_type"))
-	metricObj.Name = metric.MetricName(r.PathValue("metric_name"))
-	metricObj.Value = metric.MetricValue(r.PathValue("metric_value"))
-
-	if !metricObj.Type.IsValid() || !metricObj.IsValidValue() {
+	if err != nil || !metricObj.IsValidValue() {
 		http.Error(w, "", http.StatusBadRequest)
 		return
 	}

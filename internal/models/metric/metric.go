@@ -1,6 +1,10 @@
 package metric
 
-import "strconv"
+import (
+	"errors"
+	"fmt"
+	"strconv"
+)
 
 type MetricType string
 type MetricName string
@@ -10,6 +14,21 @@ type Metric struct {
 	Type  MetricType  `json:"type"`
 	Name  MetricName  `json:"name"`
 	Value MetricValue `json:"value"`
+}
+
+func NewMetric(mType string, mName string, mValue string) (Metric, error) {
+
+	if !MetricType(mType).IsValid() {
+		return Metric{}, errors.New(
+			fmt.Sprintf("metric type `%s` not valid", mType),
+		)
+	}
+
+	return Metric{
+		Type:  MetricType(mType),
+		Name:  MetricName(mName),
+		Value: MetricValue(mValue),
+	}, nil
 }
 
 const (
