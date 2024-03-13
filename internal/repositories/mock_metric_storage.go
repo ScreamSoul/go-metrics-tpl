@@ -56,7 +56,7 @@ func (db *MockMetricStorage) List() (metics []metric.Metric) {
 		metics = append(metics, metric.Metric{
 			Type:  metric.Gauge,
 			Name:  n,
-			Value: metric.MetricValue(strconv.FormatFloat(v, 'f', -1, 64)),
+			Value: metric.MetricValue(fmt.Sprint(v)),
 		})
 	}
 	for n, v := range db.Counter {

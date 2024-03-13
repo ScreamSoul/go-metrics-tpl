@@ -101,13 +101,13 @@ func TestValueRouter(t *testing.T) {
 
 func TestListRouter(t *testing.T) {
 	mockDB := repositories.MockMetricStorage{
-		Counter: map[metric.MetricName]int64{
-			"MetricCounter1": 123,
-			"MetricCounter2": 321,
-		},
 		Gauge: map[metric.MetricName]float64{
 			"MetricGauge1": 1.12,
 			"MetricGauge2": 1.32,
+		},
+		Counter: map[metric.MetricName]int64{
+			"MetricCounter1": 123,
+			"MetricCounter2": 321,
 		},
 	}
 
