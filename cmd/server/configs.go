@@ -2,25 +2,23 @@ package main
 
 import (
 	"flag"
-	"fmt"
 
 	"github.com/caarlos0/env/v6"
 )
 
-var cfg config
-
-type config struct {
+type Config struct {
 	ListenAddress string `env:"ADDRESS"`
 }
 
-func init() {
-	flag.StringVar(&cfg.ListenAddress, "a", "localhost:8080", "address and port to run server")
-}
+func NewConfig() (*Config, error) {
+	var cfg Config
 
-func parseConfig() {
+	flag.StringVar(&cfg.ListenAddress, "a", "localhost:8080", "address and port to run server")
+
 	flag.Parse()
 
 	if err := env.Parse(&cfg); err != nil {
-		fmt.Printf("Failed to parse: %v\r\n", err)
+		return nil, err
 	}
+	return &cfg, nil
 }

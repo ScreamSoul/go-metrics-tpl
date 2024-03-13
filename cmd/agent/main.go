@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories/memory"
@@ -21,7 +22,12 @@ func sendMetric(uploadURL string) {
 }
 
 func main() {
-	parseConfig()
+	cfg, err := NewConfig()
+
+	if err != nil {
+		fmt.Println("fail parse config: ", err)
+		os.Exit(1)
+	}
 
 	fmt.Print("start agent; ")
 	fmt.Print("metric server: ", cfg.GetServerURL(), "; ")
