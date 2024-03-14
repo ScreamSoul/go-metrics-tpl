@@ -385,10 +385,11 @@ func (mmGet *MetricStorageMock) Get(mt metric.MetricType, mn metric.MetricName) 
 		}
 
 		mm_results := mmGet.GetMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGet.t.Fatal("No results are set for the MetricStorageMock.Get")
+		if mm_results != nil {
+			return (*mm_results).s1, (*mm_results).err
 		}
-		return (*mm_results).s1, (*mm_results).err
+		mmGet.t.Fatal("No results are set for the MetricStorageMock.Get")
+		
 	}
 	if mmGet.funcGet != nil {
 		return mmGet.funcGet(mt, mn)
@@ -545,10 +546,10 @@ func (mmList *MetricStorageMock) List() (ma1 []metric.Metric) {
 		mm_atomic.AddUint64(&mmList.ListMock.defaultExpectation.Counter, 1)
 
 		mm_results := mmList.ListMock.defaultExpectation.results
-		if mm_results == nil {
-			mmList.t.Fatal("No results are set for the MetricStorageMock.List")
+		if mm_results != nil {
+			return (*mm_results).ma1
 		}
-		return (*mm_results).ma1
+		mmList.t.Fatal("No results are set for the MetricStorageMock.List")	
 	}
 	if mmList.funcList != nil {
 		return mmList.funcList()
