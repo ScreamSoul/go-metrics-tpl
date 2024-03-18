@@ -10,11 +10,11 @@ import (
 )
 
 type MetricServer struct {
-	store *repositories.MetricStorage
+	store repositories.MetricStorage
 }
 
 func NewMetricServer(metricRepo repositories.MetricStorage) *MetricServer {
-	return &MetricServer{store: &metricRepo}
+	return &MetricServer{store: metricRepo}
 }
 
 func (ms *MetricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
@@ -29,7 +29,7 @@ func (ms *MetricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	(*ms.store).Add(metricObj)
+	ms.store.Add(metricObj)
 	fmt.Println(metricObj)
 }
 
@@ -41,7 +41,7 @@ func (ms *MetricServer) GetMetricValue(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
-	mv, err := (*ms.store).Get(mt, mn)
+	mv, err := ms.store.Get(mt, mn)
 	if err != nil {
 		http.Error(w, "", http.StatusNotFound)
 		return
@@ -55,7 +55,7 @@ func (ms *MetricServer) GetMetricValue(w http.ResponseWriter, r *http.Request) {
 
 func (ms *MetricServer) ListMetrics(w http.ResponseWriter, r *http.Request) {
 
-	metrics := (*ms.store).List()
+	metrics := ms.store.List()
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(metrics); err != nil {

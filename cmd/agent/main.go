@@ -16,9 +16,9 @@ func sendMetric(uploadURL string) {
 		fmt.Println(err)
 		return
 	}
-	fmt.Printf("Url: %s; Status: %s\r\n", uploadURL, resp.Status)
-
 	defer resp.Body.Close()
+
+	fmt.Printf("Url: %s; Status: %s\r\n", uploadURL, resp.Status)
 }
 
 func main() {
