@@ -1,3 +1,5 @@
+# Makefile
+
 statictest:
 	golangci-lint run
 
