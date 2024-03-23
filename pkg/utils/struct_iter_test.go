@@ -11,8 +11,7 @@ import (
 func TestGetPublicFields_NonNilStruct(t *testing.T) {
 	// Arrange
 	type TestStruct struct {
-		PublicField  int
-		privateField int
+		PublicField int
 	}
 	s := TestStruct{}
 
@@ -28,8 +27,7 @@ func TestGetPublicFields_NonNilStruct(t *testing.T) {
 func TestGetPublicFields_UnexportedFields(t *testing.T) {
 	// Arrange
 	type TestStruct struct {
-		PublicField  int
-		privateField int
+		PublicField int
 	}
 	s := TestStruct{}
 
