@@ -2,19 +2,20 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/screamsoul/go-metrics-tpl/internal/models/metric"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories"
+	"go.uber.org/zap"
 )
 
 type MetricServer struct {
-	store repositories.MetricStorage
+	store  repositories.MetricStorage
+	logger *zap.Logger
 }
 
-func NewMetricServer(metricRepo repositories.MetricStorage) *MetricServer {
-	return &MetricServer{store: metricRepo}
+func NewMetricServer(metricRepo repositories.MetricStorage, logger *zap.Logger) *MetricServer {
+	return &MetricServer{store: metricRepo, logger: logger}
 }
 
 func (ms *MetricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +31,7 @@ func (ms *MetricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ms.store.Add(metricObj)
-	fmt.Println(metricObj)
+	ms.logger.Debug("add metric object", zap.Any("metricObj", metricObj))
 }
 
 func (ms *MetricServer) GetMetricValue(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +49,7 @@ func (ms *MetricServer) GetMetricValue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := w.Write([]byte(mv)); err != nil {
-		fmt.Println("Error writing response:", err)
+		ms.logger.Error("Error writing response", zap.Error(err))
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }

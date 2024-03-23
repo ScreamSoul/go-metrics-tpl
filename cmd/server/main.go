@@ -1,27 +1,34 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 
+	"github.com/screamsoul/go-metrics-tpl/internal/middlewares"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories/memory"
 	"github.com/screamsoul/go-metrics-tpl/internal/routers"
+	"github.com/screamsoul/go-metrics-tpl/pkg/logger"
+	"go.uber.org/zap"
 )
 
 func main() {
 	cfg, err := NewConfig()
 
 	if err != nil {
-		fmt.Printf("fail parse config: %v\r\n", err)
-		os.Exit(1)
+		panic(err)
 	}
 
-	var router = routers.MetricRouter(
+	if err := logger.Initialize(cfg.LogLevel); err != nil {
+		panic(err)
+	}
+
+	var router = routers.NewMetricRouter(
 		memory.NewMemStorage(),
+		logger.Log,
+
+		middlewares.NewLoggingMiddleware(logger.Log).Middleware,
 	)
 
-	fmt.Println("Starting server on ", cfg.ListenAddress)
+	logger.Log.Info("starting server", zap.String("ListenAddress", cfg.ListenAddress))
 
 	if err := http.ListenAndServe(cfg.ListenAddress, router); err != nil {
 		panic(err)

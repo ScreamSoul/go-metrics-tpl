@@ -2,35 +2,41 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories/memory"
+	"github.com/screamsoul/go-metrics-tpl/pkg/logger"
+	"go.uber.org/zap"
 )
 
 func sendMetric(uploadURL string) {
 	resp, err := http.Post(uploadURL, "text/plain", bytes.NewBufferString(""))
 	if err != nil {
-		fmt.Println(err)
+		logger.Log.Error("send error", zap.Error(err))
 		return
 	}
 	defer resp.Body.Close()
-
-	fmt.Printf("Url: %s; Status: %s\r\n", uploadURL, resp.Status)
+	logger.Log.Info(
+		"send metric",
+		zap.String("url", uploadURL),
+		zap.String("resp status", resp.Status),
+	)
 }
 
 func main() {
 	cfg, err := NewConfig()
 
 	if err != nil {
-		fmt.Println("fail parse config: ", err)
-		os.Exit(1)
+		panic(err)
 	}
 
-	fmt.Print("start agent; ")
-	fmt.Print("metric server: ", cfg.GetServerURL(), "; ")
+	if err := logger.Initialize(cfg.LogLevel); err != nil {
+		panic(err)
+	}
+
+	logger.Log.Info("start agent")
+	logger.Log.Info("use metric server", zap.String("server", cfg.GetServerURL()))
 
 	metricRepo := memory.NewCollectionMetricStorage()
 
