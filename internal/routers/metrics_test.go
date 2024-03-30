@@ -123,9 +123,9 @@ func TestValueRouter(t *testing.T) {
 	defer ts.Close()
 
 	mockDB.GetMock.Set(func(m *metrics.Metrics) (err error) {
-		var int_value int64 = 1
+		var intValue int64 = 1
 		if m.MType == metrics.Counter && m.ID == "someMetric1" {
-			m.Delta = &int_value
+			m.Delta = &intValue
 		} else {
 			return errors.New("not found")
 		}
@@ -179,12 +179,12 @@ func TestValueRouter(t *testing.T) {
 func TestListRouter(t *testing.T) {
 	mc := minimock.NewController(t)
 
-	var int_value int64 = 1
-	var float_value float64 = 1.1
+	var intValue int64 = 1
+	var floatValue = 1.1
 
 	mockMetricList := []metrics.Metrics{
-		{ID: "MetricGauge1", Value: &float_value, MType: metrics.Gauge},
-		{ID: "MetricCounter1", Delta: &int_value, MType: metrics.Counter},
+		{ID: "MetricGauge1", Value: &floatValue, MType: metrics.Gauge},
+		{ID: "MetricCounter1", Delta: &intValue, MType: metrics.Counter},
 	}
 
 	mockDB := repositories.NewMetricStorageMock(mc).ListMock.Return(

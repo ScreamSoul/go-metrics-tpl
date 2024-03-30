@@ -2,6 +2,7 @@
 
 statictest:
 	golangci-lint run
+	go vet -vettool=./statictest ./...
 
 metrictest:
 	@echo "Build server"
