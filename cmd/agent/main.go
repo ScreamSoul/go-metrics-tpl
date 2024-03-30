@@ -1,26 +1,30 @@
 package main
 
 import (
-	"bytes"
-	"net/http"
 	"time"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories/memory"
 	"github.com/screamsoul/go-metrics-tpl/pkg/logger"
 	"go.uber.org/zap"
 )
 
-func sendMetric(uploadURL string) {
-	resp, err := http.Post(uploadURL, "text/plain", bytes.NewBufferString(""))
+func sendMetric(uploadURL string, body interface{}) {
+	resp, err := resty.New().R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(body).
+		Post(uploadURL)
+
 	if err != nil {
 		logger.Log.Error("send error", zap.Error(err))
-		return
 	}
-	defer resp.Body.Close()
+
+	if resp.IsError() {
+		logger.Log.Error("error response", zap.Any("error", resp.Error()))
+	}
+
 	logger.Log.Info(
-		"send metric",
-		zap.String("url", uploadURL),
-		zap.String("resp status", resp.Status),
+		"send metric", zap.Any("metric", resp.Request.Body), zap.String("url", uploadURL),
 	)
 }
 
@@ -54,11 +58,8 @@ func main() {
 		for {
 			for _, m := range metricRepo.List() {
 				go sendMetric(
-					cfg.GetUpdateMetricURL(
-						string(m.Type),
-						string(m.Name),
-						string(m.Value),
-					),
+					cfg.GetUpdateMetricURL(),
+					m,
 				)
 			}
 			time.Sleep(reportInterval)

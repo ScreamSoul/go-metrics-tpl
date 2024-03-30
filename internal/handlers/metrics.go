@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/screamsoul/go-metrics-tpl/internal/models/metric"
+	"github.com/screamsoul/go-metrics-tpl/internal/models/metrics"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories"
 	"go.uber.org/zap"
 )
@@ -19,14 +19,15 @@ func NewMetricServer(metricRepo repositories.MetricStorage, logger *zap.Logger) 
 }
 
 func (ms *MetricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
-	metricObj, err := metric.NewMetric(
-		r.PathValue("metric_type"),
-		r.PathValue("metric_name"),
-		r.PathValue("metric_value"),
-	)
+	var metricObj metrics.Metrics
 
-	if err != nil || !metricObj.IsValidValue() {
-		http.Error(w, "", http.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&metricObj); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := metricObj.ValidateValue(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -35,22 +36,23 @@ func (ms *MetricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ms *MetricServer) GetMetricValue(w http.ResponseWriter, r *http.Request) {
-	mt := metric.MetricType(r.PathValue("metric_type"))
-	mn := metric.MetricName(r.PathValue("metric_name"))
+	var metricObj metrics.Metrics
 
-	if !mt.IsValid() {
-		http.Error(w, "", http.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&metricObj); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	mv, err := ms.store.Get(mt, mn)
+
+	err := ms.store.Get(&metricObj)
 	if err != nil {
-		http.Error(w, "", http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	if _, err := w.Write([]byte(mv)); err != nil {
-		ms.logger.Error("Error writing response", zap.Error(err))
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(&metricObj); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 

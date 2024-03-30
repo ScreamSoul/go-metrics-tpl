@@ -3,25 +3,44 @@ package routers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/gojuno/minimock/v3"
-	"github.com/screamsoul/go-metrics-tpl/internal/models/metric"
+	"github.com/screamsoul/go-metrics-tpl/internal/models/metrics"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
 
-func testRequest(t *testing.T, ts *httptest.Server, method,
-	path string) *resty.Response {
+func testRequest(
+	t *testing.T,
+	ts *httptest.Server,
+	method,
+	path string,
+	body interface{},
+	headers ...http.Header,
+) *resty.Response {
 
 	req := resty.New().R()
+
 	req.Method = method
 	req.URL = ts.URL + path
+
+	if body != nil {
+		req.Body = body
+	}
+	for _, header := range headers {
+		for key, values := range header {
+			for _, value := range values {
+				req.SetHeader(key, value)
+			}
+		}
+	}
 
 	resp, err := req.Send()
 	require.NoError(t, err, "error making HTTP request")
@@ -39,25 +58,57 @@ func TestUpdateRouter(t *testing.T) {
 	defer ts.Close()
 
 	mockDB.AddMock.Set(
-		func(m metric.Metric) {
+		func(m metrics.Metrics) {
 		},
 	)
 
 	var testTable = []struct {
-		url    string
+		name   string
+		body   map[string]interface{}
 		method string
 		status int
 	}{
-		{"/update/counter/someMetric/527", "POST", http.StatusOK},
-		{"/update/gauge/someMetric1/527.44", "POST", http.StatusOK},
-		{"/update/gauge/someMetric1/527.44", "GET", http.StatusMethodNotAllowed},
-		{"/update/asd/someMetric1/527.44", "POST", http.StatusBadRequest},
-		{"/update/gauge/someMetric1/asd", "POST", http.StatusBadRequest},
-		{"/update/gauge", "POST", http.StatusNotFound},
+		{
+			name:   "update ok",
+			body:   map[string]interface{}{"type": "counter", "delta": 1, "ID": "someMetric1"},
+			method: "POST",
+			status: http.StatusOK,
+		},
+		{
+			name:   "update mothod not allowed",
+			body:   map[string]interface{}{"type": "counter", "delta": 1, "id": "someMetric1"},
+			method: "GET",
+			status: http.StatusMethodNotAllowed,
+		},
+		{
+			name:   "update bad type",
+			body:   map[string]interface{}{"type": "asd", "delta": 1, "id": "someMetric1"},
+			method: "POST",
+			status: http.StatusBadRequest,
+		},
+		{
+			name:   "update bad value",
+			body:   map[string]interface{}{"type": "counter", "delta": "asd", "id": "someMetric1"},
+			method: "POST",
+			status: http.StatusBadRequest,
+		},
+		{
+			name:   "update incorrect value",
+			body:   map[string]interface{}{"type": "counter", "value": 1.2, "id": "someMetric1"},
+			method: "POST",
+			status: http.StatusBadRequest,
+		},
 	}
 	for _, v := range testTable {
-		resp := testRequest(t, ts, v.method, v.url)
-		assert.Equal(t, v.status, resp.StatusCode())
+		t.Run(v.name, func(t *testing.T) {
+			resp := testRequest(t, ts, v.method, "/update/", v.body, http.Header{"Content-Type": {"application/json"}})
+			assert.Equal(
+				t,
+				v.status,
+				resp.StatusCode(),
+				fmt.Sprintf("Resp body: %s", string(resp.Body())),
+			)
+		})
 	}
 
 }
@@ -71,70 +122,53 @@ func TestValueRouter(t *testing.T) {
 	ts := httptest.NewServer(NewMetricRouter(mockDB, zap.NewNop()))
 	defer ts.Close()
 
+	mockDB.GetMock.Set(func(m *metrics.Metrics) (err error) {
+		var int_value int64 = 1
+		if m.MType == metrics.Counter && m.ID == "someMetric1" {
+			m.Delta = &int_value
+		} else {
+			return errors.New("not found")
+		}
+
+		return nil
+	})
+
 	var testTable = []struct {
 		name           string
-		url            string
+		body           map[string]interface{}
 		method         string
-		mockSetup      func()
 		expectedStatus int
 		expectedBody   string
 	}{
 		{
 			name:           "fail type",
-			url:            "/value/fake_gauge/MetricGauge1",
-			method:         "GET",
-			mockSetup:      func() {},
+			body:           map[string]interface{}{"type": "fake_type", "id": "someMetric1"},
+			method:         "POST",
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   "",
 		},
 		{
-			name:   "value gauge ok",
-			url:    "/value/gauge/MetricGauge1",
-			method: "GET",
-			mockSetup: func() {
-				mockDB.GetMock.When(metric.Gauge, metric.MetricName("MetricGauge1")).Then("1.11", nil)
-			},
+			name:           "value ok",
+			body:           map[string]interface{}{"type": "counter", "id": "someMetric1"},
+			method:         "POST",
 			expectedStatus: http.StatusOK,
-			expectedBody:   "1.11",
+			expectedBody:   `{"type": "counter", "id": "someMetric1", "delta": 1}`,
 		},
 		{
-			name:   "value counter ok",
-			url:    "/value/counter/MetricCounter1",
-			method: "GET",
-			mockSetup: func() {
-				mockDB.GetMock.When(metric.Counter, metric.MetricName("MetricCounter1")).Then("1", nil)
-			},
-			expectedStatus: http.StatusOK,
-			expectedBody:   "1",
-		},
-		{
-			name:   "value counter ok",
-			url:    "/value/counter/MetricCounter3",
-			method: "GET",
-			mockSetup: func() {
-				mockDB.GetMock.When(metric.Counter, metric.MetricName("MetricCounter3")).Then("", errors.New("not found"))
-			},
-			expectedStatus: http.StatusNotFound,
-			expectedBody:   "",
-		},
-		{
-			name:   "value gauge not found",
-			url:    "/value/gauge/MetricGauge3",
-			method: "GET",
-			mockSetup: func() {
-				mockDB.GetMock.When(metric.Gauge, metric.MetricName("MetricGauge3")).Then("", errors.New("not found"))
-			},
+			name:   "value not found",
+			body:   map[string]interface{}{"type": "counter", "id": "someMetric2"},
+			method: "POST",
+
 			expectedStatus: http.StatusNotFound,
 			expectedBody:   "",
 		},
 	}
 	for _, v := range testTable {
 		t.Run(v.name, func(t *testing.T) {
-			v.mockSetup()
-			resp := testRequest(t, ts, v.method, v.url)
-			require.Equal(t, v.expectedStatus, resp.StatusCode())
+			resp := testRequest(t, ts, v.method, "/value/", v.body, http.Header{"Content-Type": {"application/json"}})
+			require.Equal(t, v.expectedStatus, resp.StatusCode(), fmt.Sprintf("Resp body: %s", string(resp.Body())))
 			if v.expectedBody != "" {
-				assert.Equal(t, v.expectedBody, string(resp.Body()))
+				assert.JSONEq(t, v.expectedBody, string(resp.Body()))
 			}
 		})
 
@@ -145,11 +179,12 @@ func TestValueRouter(t *testing.T) {
 func TestListRouter(t *testing.T) {
 	mc := minimock.NewController(t)
 
-	mockMetricList := []metric.Metric{
-		{Name: "MetricGauge1", Value: "1.11", Type: metric.Gauge},
-		{Name: "MetricGauge1", Value: "2.22", Type: metric.Gauge},
-		{Name: "MetricCounter1", Value: "1", Type: metric.Counter},
-		{Name: "MetricCounter1", Value: "2", Type: metric.Counter},
+	var int_value int64 = 1
+	var float_value float64 = 1.1
+
+	mockMetricList := []metrics.Metrics{
+		{ID: "MetricGauge1", Value: &float_value, MType: metrics.Gauge},
+		{ID: "MetricCounter1", Delta: &int_value, MType: metrics.Counter},
 	}
 
 	mockDB := repositories.NewMetricStorageMock(mc).ListMock.Return(
@@ -163,21 +198,20 @@ func TestListRouter(t *testing.T) {
 
 	var testTable = []struct {
 		name   string
-		url    string
 		method string
 		status int
-		result []metric.Metric
+		result []metrics.Metrics
 	}{
-		{"list json ok", "/", "GET", http.StatusOK, mockMetricList},
+		{"list json ok", "GET", http.StatusOK, mockMetricList},
 	}
 	for _, v := range testTable {
 		t.Run(v.name, func(t *testing.T) {
-			resp := testRequest(t, ts, v.method, v.url)
+			resp := testRequest(t, ts, v.method, "/", nil)
 			require.Equal(t, v.status, resp.StatusCode())
 			if v.status == http.StatusOK {
-				var mList []metric.Metric
+				var mList []metrics.Metrics
 				err := json.Unmarshal(resp.Body(), &mList)
-				require.NoError(t, err)
+				require.NoError(t, err, string(resp.Body()))
 				assert.Equal(t, v.result, mList)
 			}
 		})

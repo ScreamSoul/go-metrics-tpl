@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/caarlos0/env"
 )
@@ -15,12 +16,12 @@ type Config struct {
 }
 
 func (c *Config) GetServerURL() string {
-	return fmt.Sprintf("http://%s", c.ListenServerHost)
+	return strings.TrimRight(fmt.Sprintf("http://%s", c.ListenServerHost), "/")
 
 }
 
-func (c *Config) GetUpdateMetricURL(mType, mName, mValue string) string {
-	return fmt.Sprintf("%s/update/%s/%s/%s", c.GetServerURL(), mType, mName, mValue)
+func (c *Config) GetUpdateMetricURL() string {
+	return fmt.Sprintf("%s/update/", c.GetServerURL())
 }
 
 func NewConfig() (*Config, error) {

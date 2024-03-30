@@ -2,7 +2,7 @@
 
 package repositories
 
-//go:generate minimock -i github.com/screamsoul/go-metrics-tpl/internal/repositories.MetricStorage -o metric_storage_mock_test.go -n MetricStorageMock -p repositories
+//go:generate minimock -i github.com/screamsoul/go-metrics-tpl/internal/repositories.MetricStorage -o metric_storage_mock.go -n MetricStorageMock -p repositories
 
 import (
 	"sync"
@@ -10,7 +10,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/screamsoul/go-metrics-tpl/internal/models/metric"
+	"github.com/screamsoul/go-metrics-tpl/internal/models/metrics"
 )
 
 // MetricStorageMock implements MetricStorage
@@ -18,19 +18,19 @@ type MetricStorageMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
-	funcAdd          func(m metric.Metric)
-	inspectFuncAdd   func(m metric.Metric)
+	funcAdd          func(m metrics.Metrics)
+	inspectFuncAdd   func(m metrics.Metrics)
 	afterAddCounter  uint64
 	beforeAddCounter uint64
 	AddMock          mMetricStorageMockAdd
 
-	funcGet          func(mt metric.MetricType, mn metric.MetricName) (s1 string, err error)
-	inspectFuncGet   func(mt metric.MetricType, mn metric.MetricName)
+	funcGet          func(m *metrics.Metrics) (err error)
+	inspectFuncGet   func(m *metrics.Metrics)
 	afterGetCounter  uint64
 	beforeGetCounter uint64
 	GetMock          mMetricStorageMockGet
 
-	funcList          func() (ma1 []metric.Metric)
+	funcList          func() (ma1 []metrics.Metrics)
 	inspectFuncList   func()
 	afterListCounter  uint64
 	beforeListCounter uint64
@@ -77,11 +77,11 @@ type MetricStorageMockAddExpectation struct {
 
 // MetricStorageMockAddParams contains parameters of the MetricStorage.Add
 type MetricStorageMockAddParams struct {
-	m metric.Metric
+	m metrics.Metrics
 }
 
 // Expect sets up expected params for MetricStorage.Add
-func (mmAdd *mMetricStorageMockAdd) Expect(m metric.Metric) *mMetricStorageMockAdd {
+func (mmAdd *mMetricStorageMockAdd) Expect(m metrics.Metrics) *mMetricStorageMockAdd {
 	if mmAdd.mock.funcAdd != nil {
 		mmAdd.mock.t.Fatalf("MetricStorageMock.Add mock is already set by Set")
 	}
@@ -101,7 +101,7 @@ func (mmAdd *mMetricStorageMockAdd) Expect(m metric.Metric) *mMetricStorageMockA
 }
 
 // Inspect accepts an inspector function that has same arguments as the MetricStorage.Add
-func (mmAdd *mMetricStorageMockAdd) Inspect(f func(m metric.Metric)) *mMetricStorageMockAdd {
+func (mmAdd *mMetricStorageMockAdd) Inspect(f func(m metrics.Metrics)) *mMetricStorageMockAdd {
 	if mmAdd.mock.inspectFuncAdd != nil {
 		mmAdd.mock.t.Fatalf("Inspect function is already set for MetricStorageMock.Add")
 	}
@@ -125,7 +125,7 @@ func (mmAdd *mMetricStorageMockAdd) Return() *MetricStorageMock {
 }
 
 // Set uses given function f to mock the MetricStorage.Add method
-func (mmAdd *mMetricStorageMockAdd) Set(f func(m metric.Metric)) *MetricStorageMock {
+func (mmAdd *mMetricStorageMockAdd) Set(f func(m metrics.Metrics)) *MetricStorageMock {
 	if mmAdd.defaultExpectation != nil {
 		mmAdd.mock.t.Fatalf("Default expectation is already set for the MetricStorage.Add method")
 	}
@@ -139,7 +139,7 @@ func (mmAdd *mMetricStorageMockAdd) Set(f func(m metric.Metric)) *MetricStorageM
 }
 
 // Add implements MetricStorage
-func (mmAdd *MetricStorageMock) Add(m metric.Metric) {
+func (mmAdd *MetricStorageMock) Add(m metrics.Metrics) {
 	mm_atomic.AddUint64(&mmAdd.beforeAddCounter, 1)
 	defer mm_atomic.AddUint64(&mmAdd.afterAddCounter, 1)
 
@@ -264,18 +264,16 @@ type MetricStorageMockGetExpectation struct {
 
 // MetricStorageMockGetParams contains parameters of the MetricStorage.Get
 type MetricStorageMockGetParams struct {
-	mt metric.MetricType
-	mn metric.MetricName
+	m *metrics.Metrics
 }
 
 // MetricStorageMockGetResults contains results of the MetricStorage.Get
 type MetricStorageMockGetResults struct {
-	s1  string
 	err error
 }
 
 // Expect sets up expected params for MetricStorage.Get
-func (mmGet *mMetricStorageMockGet) Expect(mt metric.MetricType, mn metric.MetricName) *mMetricStorageMockGet {
+func (mmGet *mMetricStorageMockGet) Expect(m *metrics.Metrics) *mMetricStorageMockGet {
 	if mmGet.mock.funcGet != nil {
 		mmGet.mock.t.Fatalf("MetricStorageMock.Get mock is already set by Set")
 	}
@@ -284,7 +282,7 @@ func (mmGet *mMetricStorageMockGet) Expect(mt metric.MetricType, mn metric.Metri
 		mmGet.defaultExpectation = &MetricStorageMockGetExpectation{}
 	}
 
-	mmGet.defaultExpectation.params = &MetricStorageMockGetParams{mt, mn}
+	mmGet.defaultExpectation.params = &MetricStorageMockGetParams{m}
 	for _, e := range mmGet.expectations {
 		if minimock.Equal(e.params, mmGet.defaultExpectation.params) {
 			mmGet.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGet.defaultExpectation.params)
@@ -295,7 +293,7 @@ func (mmGet *mMetricStorageMockGet) Expect(mt metric.MetricType, mn metric.Metri
 }
 
 // Inspect accepts an inspector function that has same arguments as the MetricStorage.Get
-func (mmGet *mMetricStorageMockGet) Inspect(f func(mt metric.MetricType, mn metric.MetricName)) *mMetricStorageMockGet {
+func (mmGet *mMetricStorageMockGet) Inspect(f func(m *metrics.Metrics)) *mMetricStorageMockGet {
 	if mmGet.mock.inspectFuncGet != nil {
 		mmGet.mock.t.Fatalf("Inspect function is already set for MetricStorageMock.Get")
 	}
@@ -306,7 +304,7 @@ func (mmGet *mMetricStorageMockGet) Inspect(f func(mt metric.MetricType, mn metr
 }
 
 // Return sets up results that will be returned by MetricStorage.Get
-func (mmGet *mMetricStorageMockGet) Return(s1 string, err error) *MetricStorageMock {
+func (mmGet *mMetricStorageMockGet) Return(err error) *MetricStorageMock {
 	if mmGet.mock.funcGet != nil {
 		mmGet.mock.t.Fatalf("MetricStorageMock.Get mock is already set by Set")
 	}
@@ -314,12 +312,12 @@ func (mmGet *mMetricStorageMockGet) Return(s1 string, err error) *MetricStorageM
 	if mmGet.defaultExpectation == nil {
 		mmGet.defaultExpectation = &MetricStorageMockGetExpectation{mock: mmGet.mock}
 	}
-	mmGet.defaultExpectation.results = &MetricStorageMockGetResults{s1, err}
+	mmGet.defaultExpectation.results = &MetricStorageMockGetResults{err}
 	return mmGet.mock
 }
 
 // Set uses given function f to mock the MetricStorage.Get method
-func (mmGet *mMetricStorageMockGet) Set(f func(mt metric.MetricType, mn metric.MetricName) (s1 string, err error)) *MetricStorageMock {
+func (mmGet *mMetricStorageMockGet) Set(f func(m *metrics.Metrics) (err error)) *MetricStorageMock {
 	if mmGet.defaultExpectation != nil {
 		mmGet.mock.t.Fatalf("Default expectation is already set for the MetricStorage.Get method")
 	}
@@ -334,35 +332,35 @@ func (mmGet *mMetricStorageMockGet) Set(f func(mt metric.MetricType, mn metric.M
 
 // When sets expectation for the MetricStorage.Get which will trigger the result defined by the following
 // Then helper
-func (mmGet *mMetricStorageMockGet) When(mt metric.MetricType, mn metric.MetricName) *MetricStorageMockGetExpectation {
+func (mmGet *mMetricStorageMockGet) When(m *metrics.Metrics) *MetricStorageMockGetExpectation {
 	if mmGet.mock.funcGet != nil {
 		mmGet.mock.t.Fatalf("MetricStorageMock.Get mock is already set by Set")
 	}
 
 	expectation := &MetricStorageMockGetExpectation{
 		mock:   mmGet.mock,
-		params: &MetricStorageMockGetParams{mt, mn},
+		params: &MetricStorageMockGetParams{m},
 	}
 	mmGet.expectations = append(mmGet.expectations, expectation)
 	return expectation
 }
 
 // Then sets up MetricStorage.Get return parameters for the expectation previously defined by the When method
-func (e *MetricStorageMockGetExpectation) Then(s1 string, err error) *MetricStorageMock {
-	e.results = &MetricStorageMockGetResults{s1, err}
+func (e *MetricStorageMockGetExpectation) Then(err error) *MetricStorageMock {
+	e.results = &MetricStorageMockGetResults{err}
 	return e.mock
 }
 
 // Get implements MetricStorage
-func (mmGet *MetricStorageMock) Get(mt metric.MetricType, mn metric.MetricName) (s1 string, err error) {
+func (mmGet *MetricStorageMock) Get(m *metrics.Metrics) (err error) {
 	mm_atomic.AddUint64(&mmGet.beforeGetCounter, 1)
 	defer mm_atomic.AddUint64(&mmGet.afterGetCounter, 1)
 
 	if mmGet.inspectFuncGet != nil {
-		mmGet.inspectFuncGet(mt, mn)
+		mmGet.inspectFuncGet(m)
 	}
 
-	mm_params := MetricStorageMockGetParams{mt, mn}
+	mm_params := MetricStorageMockGetParams{m}
 
 	// Record call args
 	mmGet.GetMock.mutex.Lock()
@@ -372,29 +370,28 @@ func (mmGet *MetricStorageMock) Get(mt metric.MetricType, mn metric.MetricName) 
 	for _, e := range mmGet.GetMock.expectations {
 		if minimock.Equal(*e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.s1, e.results.err
+			return e.results.err
 		}
 	}
 
 	if mmGet.GetMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmGet.GetMock.defaultExpectation.Counter, 1)
 		mm_want := mmGet.GetMock.defaultExpectation.params
-		mm_got := MetricStorageMockGetParams{mt, mn}
+		mm_got := MetricStorageMockGetParams{m}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmGet.t.Errorf("MetricStorageMock.Get got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
 		mm_results := mmGet.GetMock.defaultExpectation.results
-		if mm_results != nil {
-			return (*mm_results).s1, (*mm_results).err
+		if mm_results == nil {
+			mmGet.t.Fatal("No results are set for the MetricStorageMock.Get")
 		}
-		mmGet.t.Fatal("No results are set for the MetricStorageMock.Get")
-		
+		return (*mm_results).err
 	}
 	if mmGet.funcGet != nil {
-		return mmGet.funcGet(mt, mn)
+		return mmGet.funcGet(m)
 	}
-	mmGet.t.Fatalf("Unexpected call to MetricStorageMock.Get. %v %v", mt, mn)
+	mmGet.t.Fatalf("Unexpected call to MetricStorageMock.Get. %v", m)
 	return
 }
 
@@ -479,7 +476,7 @@ type MetricStorageMockListExpectation struct {
 
 // MetricStorageMockListResults contains results of the MetricStorage.List
 type MetricStorageMockListResults struct {
-	ma1 []metric.Metric
+	ma1 []metrics.Metrics
 }
 
 // Expect sets up expected params for MetricStorage.List
@@ -507,7 +504,7 @@ func (mmList *mMetricStorageMockList) Inspect(f func()) *mMetricStorageMockList 
 }
 
 // Return sets up results that will be returned by MetricStorage.List
-func (mmList *mMetricStorageMockList) Return(ma1 []metric.Metric) *MetricStorageMock {
+func (mmList *mMetricStorageMockList) Return(ma1 []metrics.Metrics) *MetricStorageMock {
 	if mmList.mock.funcList != nil {
 		mmList.mock.t.Fatalf("MetricStorageMock.List mock is already set by Set")
 	}
@@ -520,7 +517,7 @@ func (mmList *mMetricStorageMockList) Return(ma1 []metric.Metric) *MetricStorage
 }
 
 // Set uses given function f to mock the MetricStorage.List method
-func (mmList *mMetricStorageMockList) Set(f func() (ma1 []metric.Metric)) *MetricStorageMock {
+func (mmList *mMetricStorageMockList) Set(f func() (ma1 []metrics.Metrics)) *MetricStorageMock {
 	if mmList.defaultExpectation != nil {
 		mmList.mock.t.Fatalf("Default expectation is already set for the MetricStorage.List method")
 	}
@@ -534,7 +531,7 @@ func (mmList *mMetricStorageMockList) Set(f func() (ma1 []metric.Metric)) *Metri
 }
 
 // List implements MetricStorage
-func (mmList *MetricStorageMock) List() (ma1 []metric.Metric) {
+func (mmList *MetricStorageMock) List() (ma1 []metrics.Metrics) {
 	mm_atomic.AddUint64(&mmList.beforeListCounter, 1)
 	defer mm_atomic.AddUint64(&mmList.afterListCounter, 1)
 
@@ -546,10 +543,10 @@ func (mmList *MetricStorageMock) List() (ma1 []metric.Metric) {
 		mm_atomic.AddUint64(&mmList.ListMock.defaultExpectation.Counter, 1)
 
 		mm_results := mmList.ListMock.defaultExpectation.results
-		if mm_results != nil {
-			return (*mm_results).ma1
+		if mm_results == nil {
+			mmList.t.Fatal("No results are set for the MetricStorageMock.List")
 		}
-		mmList.t.Fatal("No results are set for the MetricStorageMock.List")	
+		return (*mm_results).ma1
 	}
 	if mmList.funcList != nil {
 		return mmList.funcList()
