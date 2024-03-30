@@ -72,7 +72,7 @@ func (ms *MetricServer) GetMetricValue(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (ms *MetricServer) GetMetricJson(w http.ResponseWriter, r *http.Request) {
+func (ms *MetricServer) GetMetricJSON(w http.ResponseWriter, r *http.Request) {
 	var metricObj metrics.Metrics
 	if err := json.NewDecoder(r.Body).Decode(&metricObj); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
