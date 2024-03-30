@@ -21,9 +21,23 @@ func NewMetricServer(metricRepo repositories.MetricStorage, logger *zap.Logger) 
 func (ms *MetricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 	var metricObj metrics.Metrics
 
-	if err := json.NewDecoder(r.Body).Decode(&metricObj); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	contentType := r.Header.Get("Content-Type")
+	if contentType == "application/json" {
+		if err := json.NewDecoder(r.Body).Decode(&metricObj); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	} else {
+		metriObjPoint, err := metrics.NewMetric(
+			r.PathValue("metric_type"),
+			r.PathValue("metric_name"),
+			r.PathValue("metric_value"),
+		)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		metricObj = *metriObjPoint
 	}
 
 	if err := metricObj.ValidateValue(); err != nil {
@@ -36,8 +50,30 @@ func (ms *MetricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ms *MetricServer) GetMetricValue(w http.ResponseWriter, r *http.Request) {
-	var metricObj metrics.Metrics
+	metricObj, err := metrics.NewMetric(
+		r.PathValue("metric_type"),
+		r.PathValue("metric_name"),
+		"",
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
+	err = ms.store.Get(metricObj)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	if _, err := w.Write([]byte(metricObj.GetValue())); err != nil {
+		ms.logger.Error("Error writing response", zap.Error(err))
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+func (ms *MetricServer) GetMetricJson(w http.ResponseWriter, r *http.Request) {
+	var metricObj metrics.Metrics
 	if err := json.NewDecoder(r.Body).Decode(&metricObj); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

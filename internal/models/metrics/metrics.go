@@ -3,6 +3,7 @@ package metrics
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 )
 
 type MetricType string
@@ -25,6 +26,49 @@ type Metrics struct {
 	MType MetricType `json:"type"`            // параметр, принимающий значение gauge или counter
 	Delta *int64     `json:"delta,omitempty"` // значение метрики в случае передачи counter
 	Value *float64   `json:"value,omitempty"` // значение метрики в случае передачи gauge
+}
+
+func NewMetric(metricType, metricName, metricValue string) (*Metrics, error) {
+	mType := MetricType(metricType)
+	if !mType.IsValid() {
+		return nil, fmt.Errorf("invalid metric type: %s", metricType)
+	}
+
+	metrics := &Metrics{
+		ID:    metricName,
+		MType: mType,
+	}
+
+	if metricValue == "" {
+		return metrics, nil
+	}
+
+	switch mType {
+	case Gauge:
+		value, err := strconv.ParseFloat(metricValue, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse metric value as float64: %w", err)
+		}
+		metrics.Value = &value
+	case Counter:
+		delta, err := strconv.ParseInt(metricValue, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse metric delta as int64: %w", err)
+		}
+		metrics.Delta = &delta
+	}
+
+	return metrics, nil
+}
+
+func (m *Metrics) GetValue() (val string) {
+	switch m.MType {
+	case Gauge:
+		val = fmt.Sprint(*m.Value)
+	case Counter:
+		val = fmt.Sprint(*m.Delta)
+	}
+	return
 }
 
 func (m *Metrics) ValidateType() error {

@@ -23,8 +23,10 @@ func NewMetricRouter(
 	r.Use(middlewares...)
 
 	r.Get("/", metricServer.ListMetrics)
-	r.Post("/value/", metricServer.GetMetricValue)
+	r.Post("/value/", metricServer.GetMetricJson)
+	r.Get("/value/{metric_type}/{metric_name}", metricServer.GetMetricValue)
 	r.Post("/update/", metricServer.UpdateMetric)
+	r.Post("/update/{metric_type}/{metric_name}/{metric_value}", metricServer.UpdateMetric)
 
 	return r
 }
