@@ -46,7 +46,7 @@ func (db *MemStorage) Get(metric *metrics.Metrics) error {
 		}
 	}
 
-	return errors.New("not fuund")
+	return errors.New("not found")
 }
 
 func (db *MemStorage) List() (metics []metrics.Metrics) {
