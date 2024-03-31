@@ -3,7 +3,9 @@ package main
 import (
 	"net/http"
 
+	"github.com/screamsoul/go-metrics-tpl/internal/handlers"
 	"github.com/screamsoul/go-metrics-tpl/internal/middlewares"
+	"github.com/screamsoul/go-metrics-tpl/internal/repositories"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories/memory"
 	"github.com/screamsoul/go-metrics-tpl/internal/routers"
 	"github.com/screamsoul/go-metrics-tpl/pkg/logger"
@@ -21,9 +23,27 @@ func main() {
 		panic(err)
 	}
 
-	var router = routers.NewMetricRouter(
-		memory.NewMemStorage(),
+	var mStorage repositories.MetricStorage
+	if cfg.FileStoragePath != "" {
+		mRestoreStorage := memory.NewRestoreMetricStorage(
+			cfg.FileStoragePath,
+			cfg.StoreInterval,
+			cfg.Restore,
+			logger.Log,
+		)
+		mStorage = mRestoreStorage
+		defer mRestoreStorage.Save()
+	} else {
+		mStorage = memory.NewMemStorage()
+	}
+
+	var metricServer = handlers.NewMetricServer(
+		mStorage,
 		logger.Log,
+	)
+
+	var router = routers.NewMetricRouter(
+		metricServer,
 		middlewares.NewLoggingMiddleware(logger.Log).Middleware,
 		middlewares.GzipRequestMiddleware,
 		middlewares.GzipResponseMiddleware,
@@ -34,4 +54,5 @@ func main() {
 	if err := http.ListenAndServe(cfg.ListenAddress, router); err != nil {
 		panic(err)
 	}
+
 }

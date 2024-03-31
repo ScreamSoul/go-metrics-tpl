@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/gojuno/minimock/v3"
+	"github.com/screamsoul/go-metrics-tpl/internal/handlers"
 	"github.com/screamsoul/go-metrics-tpl/internal/models/metrics"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories"
 	"github.com/stretchr/testify/assert"
@@ -54,7 +55,11 @@ func TestUpdateRouter(t *testing.T) {
 	mockDB := repositories.NewMetricStorageMock(mc)
 	defer mockDB.MinimockFinish()
 
-	ts := httptest.NewServer(NewMetricRouter(mockDB, zap.NewNop()))
+	ts := httptest.NewServer(
+		NewMetricRouter(
+			handlers.NewMetricServer(mockDB, zap.NewNop()),
+		),
+	)
 	defer ts.Close()
 
 	mockDB.AddMock.Set(
@@ -119,7 +124,11 @@ func TestValueRouter(t *testing.T) {
 	mockDB := repositories.NewMetricStorageMock(mc)
 	defer mockDB.MinimockFinish()
 
-	ts := httptest.NewServer(NewMetricRouter(mockDB, zap.NewNop()))
+	ts := httptest.NewServer(
+		NewMetricRouter(
+			handlers.NewMetricServer(mockDB, zap.NewNop()),
+		),
+	)
 	defer ts.Close()
 
 	mockDB.GetMock.Set(func(m *metrics.Metrics) (err error) {
@@ -193,7 +202,11 @@ func TestListRouter(t *testing.T) {
 
 	defer mockDB.MinimockFinish()
 
-	ts := httptest.NewServer(NewMetricRouter(mockDB, zap.NewNop()))
+	ts := httptest.NewServer(
+		NewMetricRouter(
+			handlers.NewMetricServer(mockDB, zap.NewNop()),
+		),
+	)
 	defer ts.Close()
 
 	var testTable = []struct {

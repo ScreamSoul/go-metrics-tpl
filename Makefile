@@ -10,4 +10,4 @@ metrictest:
 	@echo "Build agent"
 	@cd cmd/agent && go build -buildvcs=false -o agent
 	@echo "Start metrictest"
-	./metricstest -test.v -test.run=^TestIteration$(iter)$$ -binary-path=cmd/server/server -agent-binary-path=cmd/agent/agent -server-port=8080 -source-path=.
+	./metricstest -test.v -test.run=^TestIteration$(iter)$$ -binary-path=cmd/server/server -agent-binary-path=cmd/agent/agent -server-port=8080 -source-path=. -file-storage-path=./metrics-db.json

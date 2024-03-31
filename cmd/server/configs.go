@@ -7,15 +7,21 @@ import (
 )
 
 type Config struct {
-	ListenAddress string `env:"ADDRESS"`
-	LogLevel      string `env:"LOG_LEVEL"`
+	ListenAddress   string `env:"ADDRESS"`
+	LogLevel        string `env:"LOG_LEVEL"`
+	StoreInterval   int    `env:"STORE_INTERVAL"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	Restore         bool   `env:"RESTORE"`
 }
 
 func NewConfig() (*Config, error) {
 	var cfg Config
 
-	flag.StringVar(&cfg.ListenAddress, "a", "localhost:8080", "address and port to run server")
-	flag.StringVar(&cfg.LogLevel, "ll", "INFO", "log level")
+	flag.StringVar(&cfg.ListenAddress, "a", "localhost:8080", "Адрес и порт сервера")
+	flag.StringVar(&cfg.LogLevel, "ll", "INFO", "Уровень логирования")
+	flag.IntVar(&cfg.StoreInterval, "i", 300, "Интервал времени в секундах, по истечении которого текущие показания сервера сохраняются на диск")
+	flag.StringVar(&cfg.FileStoragePath, "f", "/tmp/metrics-db.json", "Полное имя файла, куда сохраняются текущие значения")
+	flag.BoolVar(&cfg.Restore, "r", true, "Загружать или нет ранее сохранённые значения из указанного файла при старте сервера")
 
 	flag.Parse()
 
