@@ -24,8 +24,9 @@ func main() {
 	var router = routers.NewMetricRouter(
 		memory.NewMemStorage(),
 		logger.Log,
-
 		middlewares.NewLoggingMiddleware(logger.Log).Middleware,
+		middlewares.GzipRequestMiddleware,
+		middlewares.GzipResponseMiddleware,
 	)
 
 	logger.Log.Info("starting server", zap.String("ListenAddress", cfg.ListenAddress))

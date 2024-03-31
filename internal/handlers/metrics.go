@@ -95,7 +95,8 @@ func (ms *MetricServer) GetMetricJSON(w http.ResponseWriter, r *http.Request) {
 func (ms *MetricServer) ListMetrics(w http.ResponseWriter, r *http.Request) {
 	metrics := ms.store.List()
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "text/html")
+
 	if err := json.NewEncoder(w).Encode(metrics); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

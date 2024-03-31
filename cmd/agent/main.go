@@ -1,18 +1,38 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/screamsoul/go-metrics-tpl/internal/models/metrics"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories/memory"
 	"github.com/screamsoul/go-metrics-tpl/pkg/logger"
 	"go.uber.org/zap"
 )
 
-func sendMetric(uploadURL string, body interface{}) {
+func sendMetric(uploadURL string, metric metrics.Metrics) {
+	jsonData, err := json.Marshal(metric)
+	if err != nil {
+		panic(err)
+	}
+
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	_, err = zw.Write(jsonData)
+	if err != nil {
+		panic(err)
+	}
+	if err := zw.Close(); err != nil {
+		panic(err)
+	}
+
 	resp, err := resty.New().R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(body).
+		SetHeader("Content-Encoding", "gzip").
+		SetBody(buf.Bytes()).
 		Post(uploadURL)
 
 	if err != nil {
