@@ -35,7 +35,7 @@ func (c *gzipReader) Close() error {
 	return c.zr.Close()
 }
 
-func GzipRequestMiddleware(next http.Handler) http.Handler {
+func GzipDecompressMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 			gr, err := newGzipReader(r.Body)

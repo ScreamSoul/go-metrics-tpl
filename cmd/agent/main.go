@@ -9,11 +9,13 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/screamsoul/go-metrics-tpl/internal/models/metrics"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories/memory"
-	"github.com/screamsoul/go-metrics-tpl/pkg/logger"
+	"github.com/screamsoul/go-metrics-tpl/pkg/logging"
 	"go.uber.org/zap"
 )
 
 func sendMetric(uploadURL string, metric metrics.Metrics) {
+	logger := logging.GetLogger()
+
 	jsonData, err := json.Marshal(metric)
 	if err != nil {
 		panic(err)
@@ -36,14 +38,14 @@ func sendMetric(uploadURL string, metric metrics.Metrics) {
 		Post(uploadURL)
 
 	if err != nil {
-		logger.Log.Error("send error", zap.Error(err))
+		logger.Error("send error", zap.Error(err))
 	}
 
 	if resp.IsError() {
-		logger.Log.Error("error response", zap.Any("error", resp.Error()))
+		logger.Error("error response", zap.Any("error", resp.Error()))
 	}
 
-	logger.Log.Info(
+	logger.Info(
 		"send metric", zap.Any("metric", resp.Request.Body), zap.String("url", uploadURL),
 	)
 }
@@ -55,12 +57,14 @@ func main() {
 		panic(err)
 	}
 
-	if err := logger.Initialize(cfg.LogLevel); err != nil {
+	if err := logging.Initialize(cfg.LogLevel); err != nil {
 		panic(err)
 	}
 
-	logger.Log.Info("start agent")
-	logger.Log.Info("use metric server", zap.String("server", cfg.GetServerURL()))
+	logger := logging.GetLogger()
+
+	logger.Info("start agent")
+	logger.Info("use metric server", zap.String("server", cfg.GetServerURL()))
 
 	metricRepo := memory.NewCollectionMetricStorage()
 

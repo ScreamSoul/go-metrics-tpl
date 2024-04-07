@@ -15,7 +15,6 @@ import (
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
 
 func testRequest(
@@ -57,7 +56,7 @@ func TestUpdateRouter(t *testing.T) {
 
 	ts := httptest.NewServer(
 		NewMetricRouter(
-			handlers.NewMetricServer(mockDB, zap.NewNop()),
+			handlers.NewMetricServer(mockDB),
 		),
 	)
 	defer ts.Close()
@@ -126,7 +125,7 @@ func TestValueRouter(t *testing.T) {
 
 	ts := httptest.NewServer(
 		NewMetricRouter(
-			handlers.NewMetricServer(mockDB, zap.NewNop()),
+			handlers.NewMetricServer(mockDB),
 		),
 	)
 	defer ts.Close()
@@ -204,7 +203,7 @@ func TestListRouter(t *testing.T) {
 
 	ts := httptest.NewServer(
 		NewMetricRouter(
-			handlers.NewMetricServer(mockDB, zap.NewNop()),
+			handlers.NewMetricServer(mockDB),
 		),
 	)
 	defer ts.Close()

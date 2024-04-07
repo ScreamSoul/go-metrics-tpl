@@ -4,22 +4,17 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/screamsoul/go-metrics-tpl/pkg/logging"
 	"go.uber.org/zap"
 )
 
-type LoggingMiddleware struct {
-	logger *zap.Logger
-}
-
-func NewLoggingMiddleware(logger *zap.Logger) *LoggingMiddleware {
-	return &LoggingMiddleware{logger: logger}
-}
-
-func (lm *LoggingMiddleware) Middleware(next http.Handler) http.Handler {
+func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger := logging.GetLogger()
+
 		start := time.Now()
 
-		lm.logger.Info("Request received",
+		logger.Info("Request received",
 			zap.String("method", r.Method),
 			zap.String("uri", r.RequestURI),
 		)
@@ -28,7 +23,7 @@ func (lm *LoggingMiddleware) Middleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(lw, r)
 
-		lm.logger.Info("Response sent",
+		logger.Info("Response sent",
 			zap.Int("status", lw.statusCode),
 			zap.Int("size", lw.size),
 			zap.Duration("duration", time.Since(start)),

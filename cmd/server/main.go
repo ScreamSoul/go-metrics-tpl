@@ -8,7 +8,7 @@ import (
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories/memory"
 	"github.com/screamsoul/go-metrics-tpl/internal/routers"
-	"github.com/screamsoul/go-metrics-tpl/pkg/logger"
+	"github.com/screamsoul/go-metrics-tpl/pkg/logging"
 	"go.uber.org/zap"
 )
 
@@ -19,9 +19,11 @@ func main() {
 		panic(err)
 	}
 
-	if err := logger.Initialize(cfg.LogLevel); err != nil {
+	if err := logging.Initialize(cfg.LogLevel); err != nil {
 		panic(err)
 	}
+
+	logger := logging.GetLogger()
 
 	var mStorage repositories.MetricStorage
 	if cfg.FileStoragePath != "" {
@@ -29,7 +31,6 @@ func main() {
 			cfg.FileStoragePath,
 			cfg.StoreInterval,
 			cfg.Restore,
-			logger.Log,
 		)
 		mStorage = mRestoreStorage
 		defer mRestoreStorage.Save()
@@ -39,17 +40,16 @@ func main() {
 
 	var metricServer = handlers.NewMetricServer(
 		mStorage,
-		logger.Log,
 	)
 
 	var router = routers.NewMetricRouter(
 		metricServer,
-		middlewares.NewLoggingMiddleware(logger.Log).Middleware,
-		middlewares.GzipRequestMiddleware,
-		middlewares.GzipResponseMiddleware,
+		middlewares.LoggingMiddleware,
+		middlewares.GzipDecompressMiddleware,
+		middlewares.GzipCompressMiddleware,
 	)
 
-	logger.Log.Info("starting server", zap.String("ListenAddress", cfg.ListenAddress))
+	logger.Info("starting server", zap.String("ListenAddress", cfg.ListenAddress))
 
 	if err := http.ListenAndServe(cfg.ListenAddress, router); err != nil {
 		panic(err)

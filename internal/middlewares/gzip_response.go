@@ -34,7 +34,7 @@ func (grw *gzipResponseWriter) Close() error {
 	return grw.zw.Close()
 }
 
-func GzipResponseMiddleware(next http.Handler) http.Handler {
+func GzipCompressMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ow := w
 		supportsGzip := strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
