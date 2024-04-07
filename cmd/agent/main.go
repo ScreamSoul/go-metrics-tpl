@@ -1,54 +1,13 @@
 package main
 
 import (
-	"bytes"
-	"compress/gzip"
-	"encoding/json"
 	"time"
 
-	"github.com/go-resty/resty/v2"
-	"github.com/screamsoul/go-metrics-tpl/internal/models/metrics"
+	"github.com/screamsoul/go-metrics-tpl/internal/client"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories/memory"
 	"github.com/screamsoul/go-metrics-tpl/pkg/logging"
 	"go.uber.org/zap"
 )
-
-func sendMetric(uploadURL string, metric metrics.Metrics) {
-	logger := logging.GetLogger()
-
-	jsonData, err := json.Marshal(metric)
-	if err != nil {
-		panic(err)
-	}
-
-	var buf bytes.Buffer
-	zw := gzip.NewWriter(&buf)
-	_, err = zw.Write(jsonData)
-	if err != nil {
-		panic(err)
-	}
-	if err := zw.Close(); err != nil {
-		panic(err)
-	}
-
-	resp, err := resty.New().R().
-		SetHeader("Content-Type", "application/json").
-		SetHeader("Content-Encoding", "gzip").
-		SetBody(buf.Bytes()).
-		Post(uploadURL)
-
-	if err != nil {
-		logger.Error("send error", zap.Error(err))
-	}
-
-	if resp.IsError() {
-		logger.Error("error response", zap.Any("error", resp.Error()))
-	}
-
-	logger.Info(
-		"send metric", zap.Any("metric", resp.Request.Body), zap.String("url", uploadURL),
-	)
-}
 
 func main() {
 	cfg, err := NewConfig()
@@ -71,6 +30,8 @@ func main() {
 	pollInterval := time.Duration(cfg.PollInterval) * time.Second
 	reportInterval := time.Duration(cfg.ReportInterval) * time.Second
 
+	metricClient := client.NewMetricsClient(cfg.CompressRequest)
+
 	go func() {
 		for {
 			metricRepo.Update()
@@ -81,7 +42,7 @@ func main() {
 	go func() {
 		for {
 			for _, m := range metricRepo.List() {
-				go sendMetric(
+				go metricClient.SendMetric(
 					cfg.GetUpdateMetricURL(),
 					m,
 				)

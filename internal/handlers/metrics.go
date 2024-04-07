@@ -11,16 +11,17 @@ import (
 )
 
 type MetricServer struct {
-	store repositories.MetricStorage
+	store  repositories.MetricStorage
+	logger *zap.Logger
 }
 
 func NewMetricServer(metricRepo repositories.MetricStorage) *MetricServer {
-	return &MetricServer{store: metricRepo}
+	logger := logging.GetLogger()
+
+	return &MetricServer{store: metricRepo, logger: logger}
 }
 
 func (ms *MetricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
-	logger := logging.GetLogger()
-
 	var metricObj metrics.Metrics
 
 	contentType := r.Header.Get("Content-Type")
@@ -48,11 +49,9 @@ func (ms *MetricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ms.store.Add(metricObj)
-	logger.Debug("add metric object", zap.Any("metricObj", metricObj))
 }
 
 func (ms *MetricServer) GetMetricValue(w http.ResponseWriter, r *http.Request) {
-	logger := logging.GetLogger()
 
 	metricObj, err := metrics.NewMetric(
 		r.PathValue("metric_type"),
@@ -71,12 +70,13 @@ func (ms *MetricServer) GetMetricValue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := w.Write([]byte(metricObj.GetValue())); err != nil {
-		logger.Error("Error writing response", zap.Error(err))
+		ms.logger.Error("Error writing response", zap.Error(err))
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
 func (ms *MetricServer) GetMetricJSON(w http.ResponseWriter, r *http.Request) {
+
 	var metricObj metrics.Metrics
 	if err := json.NewDecoder(r.Body).Decode(&metricObj); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -91,17 +91,20 @@ func (ms *MetricServer) GetMetricJSON(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(&metricObj); err != nil {
+		ms.logger.Error("Error writing response", zap.Error(err))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
 func (ms *MetricServer) ListMetrics(w http.ResponseWriter, r *http.Request) {
+
 	metrics := ms.store.List()
 
 	w.Header().Set("Content-Type", "text/html")
 
 	if err := json.NewEncoder(w).Encode(metrics); err != nil {
+		ms.logger.Error("Error writing response", zap.Error(err))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

@@ -5,18 +5,22 @@ import (
 	"sync"
 
 	"github.com/screamsoul/go-metrics-tpl/internal/models/metrics"
+	"github.com/screamsoul/go-metrics-tpl/pkg/logging"
+	"go.uber.org/zap"
 )
 
 type MemStorage struct {
 	sync.Mutex
 	gauge   map[string]float64
 	counter map[string]int64
+	logger  *zap.Logger
 }
 
 func NewMemStorage() *MemStorage {
 	return &MemStorage{
 		counter: make(map[string]int64),
 		gauge:   make(map[string]float64),
+		logger:  logging.GetLogger(),
 	}
 }
 

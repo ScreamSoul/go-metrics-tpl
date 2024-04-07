@@ -13,6 +13,7 @@ type Config struct {
 	ReportInterval   int    `env:"REPORT_INTERVAL"`
 	PollInterval     int    `env:"POLL_INTERVAL"`
 	LogLevel         string `env:"LOG_LEVEL"`
+	CompressRequest  bool   `env:"COMPRESS_REQUEST"`
 }
 
 func (c *Config) GetServerURL() string {
@@ -28,6 +29,7 @@ func NewConfig() (*Config, error) {
 	var cfg Config
 
 	flag.StringVar(&cfg.ListenServerHost, "a", "localhost:8080", "address and port to run server")
+	flag.BoolVar(&cfg.CompressRequest, "z", true, "compress body request")
 	flag.IntVar(&cfg.ReportInterval, "r", 10, "the frequency of sending metrics to the server")
 	flag.IntVar(&cfg.PollInterval, "p", 2, "the frequency of polling metrics from the runtime package")
 	flag.StringVar(&cfg.LogLevel, "ll", "INFO", "log level")

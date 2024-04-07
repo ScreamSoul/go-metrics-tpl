@@ -5,7 +5,6 @@ import (
 
 	"github.com/screamsoul/go-metrics-tpl/internal/handlers"
 	"github.com/screamsoul/go-metrics-tpl/internal/middlewares"
-	"github.com/screamsoul/go-metrics-tpl/internal/repositories"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories/memory"
 	"github.com/screamsoul/go-metrics-tpl/internal/routers"
 	"github.com/screamsoul/go-metrics-tpl/pkg/logging"
@@ -25,17 +24,13 @@ func main() {
 
 	logger := logging.GetLogger()
 
-	var mStorage repositories.MetricStorage
-	if cfg.FileStoragePath != "" {
-		mRestoreStorage := memory.NewRestoreMetricStorage(
-			cfg.FileStoragePath,
-			cfg.StoreInterval,
-			cfg.Restore,
-		)
-		mStorage = mRestoreStorage
-		defer mRestoreStorage.Save()
-	} else {
-		mStorage = memory.NewMemStorage()
+	mStorage := memory.NewRestoreMetricStorage(
+		cfg.FileStoragePath,
+		cfg.StoreInterval,
+		cfg.Restore,
+	)
+	if mStorage.IsActiveRestore {
+		defer mStorage.Save()
 	}
 
 	var metricServer = handlers.NewMetricServer(
