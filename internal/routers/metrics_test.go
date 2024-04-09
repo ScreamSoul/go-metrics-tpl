@@ -11,8 +11,8 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/gojuno/minimock/v3"
 	"github.com/screamsoul/go-metrics-tpl/internal/handlers"
+	"github.com/screamsoul/go-metrics-tpl/internal/mocks"
 	"github.com/screamsoul/go-metrics-tpl/internal/models/metrics"
-	"github.com/screamsoul/go-metrics-tpl/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,7 +51,7 @@ func testRequest(
 func TestUpdateRouter(t *testing.T) {
 	mc := minimock.NewController(t)
 
-	mockDB := repositories.NewMetricStorageMock(mc)
+	mockDB := mocks.NewMetricStorageMock(mc)
 	defer mockDB.MinimockFinish()
 
 	ts := httptest.NewServer(
@@ -120,7 +120,7 @@ func TestUpdateRouter(t *testing.T) {
 func TestValueRouter(t *testing.T) {
 	mc := minimock.NewController(t)
 
-	mockDB := repositories.NewMetricStorageMock(mc)
+	mockDB := mocks.NewMetricStorageMock(mc)
 	defer mockDB.MinimockFinish()
 
 	ts := httptest.NewServer(
@@ -195,7 +195,7 @@ func TestListRouter(t *testing.T) {
 		{ID: "MetricCounter1", Delta: &intValue, MType: metrics.Counter},
 	}
 
-	mockDB := repositories.NewMetricStorageMock(mc).ListMock.Return(
+	mockDB := mocks.NewMetricStorageMock(mc).ListMock.Return(
 		mockMetricList,
 	)
 
