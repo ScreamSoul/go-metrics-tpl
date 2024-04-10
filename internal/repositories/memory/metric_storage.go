@@ -70,3 +70,7 @@ func (db *MemStorage) List() (metics []metrics.Metrics) {
 	}
 	return
 }
+
+func (db *MemStorage) Ping() bool {
+	return true
+}

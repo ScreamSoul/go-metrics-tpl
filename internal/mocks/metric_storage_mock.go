@@ -2,7 +2,6 @@
 
 package mocks
 
-
 import (
 	"sync"
 	mm_atomic "sync/atomic"
@@ -12,7 +11,7 @@ import (
 	"github.com/screamsoul/go-metrics-tpl/internal/models/metrics"
 )
 
-// MetricStorageMock implements MetricStorage
+// MetricStorageMock implements repositories.MetricStorage
 type MetricStorageMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
@@ -34,9 +33,15 @@ type MetricStorageMock struct {
 	afterListCounter  uint64
 	beforeListCounter uint64
 	ListMock          mMetricStorageMockList
+
+	funcPing          func() (b1 bool)
+	inspectFuncPing   func()
+	afterPingCounter  uint64
+	beforePingCounter uint64
+	PingMock          mMetricStorageMockPing
 }
 
-// NewMetricStorageMock returns a mock for MetricStorage
+// NewMetricStorageMock returns a mock for repositories.MetricStorage
 func NewMetricStorageMock(t minimock.Tester) *MetricStorageMock {
 	m := &MetricStorageMock{t: t}
 
@@ -51,6 +56,8 @@ func NewMetricStorageMock(t minimock.Tester) *MetricStorageMock {
 	m.GetMock.callArgs = []*MetricStorageMockGetParams{}
 
 	m.ListMock = mMetricStorageMockList{mock: m}
+
+	m.PingMock = mMetricStorageMockPing{mock: m}
 
 	t.Cleanup(m.MinimockFinish)
 
@@ -137,7 +144,7 @@ func (mmAdd *mMetricStorageMockAdd) Set(f func(m metrics.Metrics)) *MetricStorag
 	return mmAdd.mock
 }
 
-// Add implements MetricStorage
+// Add implements repositories.MetricStorage
 func (mmAdd *MetricStorageMock) Add(m metrics.Metrics) {
 	mm_atomic.AddUint64(&mmAdd.beforeAddCounter, 1)
 	defer mm_atomic.AddUint64(&mmAdd.afterAddCounter, 1)
@@ -350,7 +357,7 @@ func (e *MetricStorageMockGetExpectation) Then(err error) *MetricStorageMock {
 	return e.mock
 }
 
-// Get implements MetricStorage
+// Get implements repositories.MetricStorage
 func (mmGet *MetricStorageMock) Get(m *metrics.Metrics) (err error) {
 	mm_atomic.AddUint64(&mmGet.beforeGetCounter, 1)
 	defer mm_atomic.AddUint64(&mmGet.afterGetCounter, 1)
@@ -529,7 +536,7 @@ func (mmList *mMetricStorageMockList) Set(f func() (ma1 []metrics.Metrics)) *Met
 	return mmList.mock
 }
 
-// List implements MetricStorage
+// List implements repositories.MetricStorage
 func (mmList *MetricStorageMock) List() (ma1 []metrics.Metrics) {
 	mm_atomic.AddUint64(&mmList.beforeListCounter, 1)
 	defer mm_atomic.AddUint64(&mmList.afterListCounter, 1)
@@ -546,7 +553,6 @@ func (mmList *MetricStorageMock) List() (ma1 []metrics.Metrics) {
 			return (*mm_results).ma1
 		}
 		mmList.t.Fatal("No results are set for the MetricStorageMock.List")
-
 	}
 	if mmList.funcList != nil {
 		return mmList.funcList()
@@ -603,6 +609,149 @@ func (m *MetricStorageMock) MinimockListInspect() {
 	}
 }
 
+type mMetricStorageMockPing struct {
+	mock               *MetricStorageMock
+	defaultExpectation *MetricStorageMockPingExpectation
+	expectations       []*MetricStorageMockPingExpectation
+}
+
+// MetricStorageMockPingExpectation specifies expectation struct of the MetricStorage.Ping
+type MetricStorageMockPingExpectation struct {
+	mock *MetricStorageMock
+
+	results *MetricStorageMockPingResults
+	Counter uint64
+}
+
+// MetricStorageMockPingResults contains results of the MetricStorage.Ping
+type MetricStorageMockPingResults struct {
+	b1 bool
+}
+
+// Expect sets up expected params for MetricStorage.Ping
+func (mmPing *mMetricStorageMockPing) Expect() *mMetricStorageMockPing {
+	if mmPing.mock.funcPing != nil {
+		mmPing.mock.t.Fatalf("MetricStorageMock.Ping mock is already set by Set")
+	}
+
+	if mmPing.defaultExpectation == nil {
+		mmPing.defaultExpectation = &MetricStorageMockPingExpectation{}
+	}
+
+	return mmPing
+}
+
+// Inspect accepts an inspector function that has same arguments as the MetricStorage.Ping
+func (mmPing *mMetricStorageMockPing) Inspect(f func()) *mMetricStorageMockPing {
+	if mmPing.mock.inspectFuncPing != nil {
+		mmPing.mock.t.Fatalf("Inspect function is already set for MetricStorageMock.Ping")
+	}
+
+	mmPing.mock.inspectFuncPing = f
+
+	return mmPing
+}
+
+// Return sets up results that will be returned by MetricStorage.Ping
+func (mmPing *mMetricStorageMockPing) Return(b1 bool) *MetricStorageMock {
+	if mmPing.mock.funcPing != nil {
+		mmPing.mock.t.Fatalf("MetricStorageMock.Ping mock is already set by Set")
+	}
+
+	if mmPing.defaultExpectation == nil {
+		mmPing.defaultExpectation = &MetricStorageMockPingExpectation{mock: mmPing.mock}
+	}
+	mmPing.defaultExpectation.results = &MetricStorageMockPingResults{b1}
+	return mmPing.mock
+}
+
+// Set uses given function f to mock the MetricStorage.Ping method
+func (mmPing *mMetricStorageMockPing) Set(f func() (b1 bool)) *MetricStorageMock {
+	if mmPing.defaultExpectation != nil {
+		mmPing.mock.t.Fatalf("Default expectation is already set for the MetricStorage.Ping method")
+	}
+
+	if len(mmPing.expectations) > 0 {
+		mmPing.mock.t.Fatalf("Some expectations are already set for the MetricStorage.Ping method")
+	}
+
+	mmPing.mock.funcPing = f
+	return mmPing.mock
+}
+
+// Ping implements repositories.MetricStorage
+func (mmPing *MetricStorageMock) Ping() (b1 bool) {
+	mm_atomic.AddUint64(&mmPing.beforePingCounter, 1)
+	defer mm_atomic.AddUint64(&mmPing.afterPingCounter, 1)
+
+	if mmPing.inspectFuncPing != nil {
+		mmPing.inspectFuncPing()
+	}
+
+	if mmPing.PingMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmPing.PingMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmPing.PingMock.defaultExpectation.results
+		if mm_results != nil {
+			return (*mm_results).b1
+		}
+		mmPing.t.Fatal("No results are set for the MetricStorageMock.Ping")
+	}
+	if mmPing.funcPing != nil {
+		return mmPing.funcPing()
+	}
+	mmPing.t.Fatalf("Unexpected call to MetricStorageMock.Ping.")
+	return
+}
+
+// PingAfterCounter returns a count of finished MetricStorageMock.Ping invocations
+func (mmPing *MetricStorageMock) PingAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmPing.afterPingCounter)
+}
+
+// PingBeforeCounter returns a count of MetricStorageMock.Ping invocations
+func (mmPing *MetricStorageMock) PingBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmPing.beforePingCounter)
+}
+
+// MinimockPingDone returns true if the count of the Ping invocations corresponds
+// the number of defined expectations
+func (m *MetricStorageMock) MinimockPingDone() bool {
+	for _, e := range m.PingMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.PingMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterPingCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcPing != nil && mm_atomic.LoadUint64(&m.afterPingCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockPingInspect logs each unmet expectation
+func (m *MetricStorageMock) MinimockPingInspect() {
+	for _, e := range m.PingMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to MetricStorageMock.Ping")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.PingMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterPingCounter) < 1 {
+		m.t.Error("Expected call to MetricStorageMock.Ping")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcPing != nil && mm_atomic.LoadUint64(&m.afterPingCounter) < 1 {
+		m.t.Error("Expected call to MetricStorageMock.Ping")
+	}
+}
+
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *MetricStorageMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
@@ -612,6 +761,8 @@ func (m *MetricStorageMock) MinimockFinish() {
 			m.MinimockGetInspect()
 
 			m.MinimockListInspect()
+
+			m.MinimockPingInspect()
 			m.t.FailNow()
 		}
 	})
@@ -638,5 +789,6 @@ func (m *MetricStorageMock) minimockDone() bool {
 	return done &&
 		m.MinimockAddDone() &&
 		m.MinimockGetDone() &&
-		m.MinimockListDone()
+		m.MinimockListDone() &&
+		m.MinimockPingDone()
 }

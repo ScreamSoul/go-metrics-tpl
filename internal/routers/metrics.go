@@ -17,6 +17,7 @@ func NewMetricRouter(
 	r.Use(middlewares...)
 
 	r.Get("/", mServer.ListMetrics)
+	r.Get("/ping", mServer.PingStorage)
 	r.Post("/value/", mServer.GetMetricJSON)
 	r.Get("/value/{metric_type}/{metric_name}", mServer.GetMetricValue)
 	r.Post("/update/", mServer.UpdateMetric)

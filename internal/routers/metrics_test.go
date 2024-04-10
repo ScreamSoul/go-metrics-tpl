@@ -231,3 +231,51 @@ func TestListRouter(t *testing.T) {
 	}
 
 }
+
+func TestPingRouter(t *testing.T) {
+	mc := minimock.NewController(t)
+
+	mockDB := mocks.NewMetricStorageMock(mc)
+
+	defer mockDB.MinimockFinish()
+
+	ts := httptest.NewServer(
+		NewMetricRouter(
+			handlers.NewMetricServer(mockDB),
+		),
+	)
+	defer ts.Close()
+
+	var testTable = []struct {
+		name   string
+		method string
+		status int
+		mock   func()
+	}{
+		{
+			name:   "connect db ok",
+			method: "GET",
+			status: http.StatusOK,
+			mock: func() {
+				mockDB.PingMock.Expect().Return(true)
+			},
+		},
+		{
+			name:   "connect db fail",
+			method: "GET",
+			status: http.StatusInternalServerError,
+			mock: func() {
+				mockDB.PingMock.Expect().Return(false)
+			},
+		},
+	}
+	for _, v := range testTable {
+		t.Run(v.name, func(t *testing.T) {
+			v.mock()
+			resp := testRequest(t, ts, v.method, "/ping", nil)
+			require.Equal(t, v.status, resp.StatusCode())
+		})
+
+	}
+
+}

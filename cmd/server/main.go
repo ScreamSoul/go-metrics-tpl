@@ -5,7 +5,10 @@ import (
 
 	"github.com/screamsoul/go-metrics-tpl/internal/handlers"
 	"github.com/screamsoul/go-metrics-tpl/internal/middlewares"
+	"github.com/screamsoul/go-metrics-tpl/internal/repositories"
+	"github.com/screamsoul/go-metrics-tpl/internal/repositories/file"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories/memory"
+	"github.com/screamsoul/go-metrics-tpl/internal/repositories/postgres"
 	"github.com/screamsoul/go-metrics-tpl/internal/routers"
 	"github.com/screamsoul/go-metrics-tpl/pkg/logging"
 	"go.uber.org/zap"
@@ -24,17 +27,34 @@ func main() {
 
 	logger := logging.GetLogger()
 
-	mStorage := memory.NewRestoreMetricStorage(
+	// Create MetricStorage
+
+	var mStorage repositories.MetricStorage
+
+	if cfg.DatabaseDNS == "" {
+		memS := memory.NewMemStorage()
+		mStorage = memS
+	} else {
+		postgresS := postgres.NewPostgresStorage(cfg.DatabaseDNS)
+		defer postgresS.Close()
+		mStorage = postgresS
+	}
+
+	// Create resore wrapper
+
+	mStorageRestore := file.NewFileRestoreMetricWrapper(
+		mStorage,
 		cfg.FileStoragePath,
 		cfg.StoreInterval,
 		cfg.Restore,
 	)
-	if mStorage.IsActiveRestore {
-		defer mStorage.Save()
+
+	if mStorageRestore.IsActiveRestore {
+		defer mStorageRestore.Save()
 	}
 
 	var metricServer = handlers.NewMetricServer(
-		mStorage,
+		mStorageRestore,
 	)
 
 	var router = routers.NewMetricRouter(

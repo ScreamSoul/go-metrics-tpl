@@ -9,4 +9,5 @@ type MetricStorage interface {
 	Add(m metrics.Metrics)
 	Get(m *metrics.Metrics) error
 	List() []metrics.Metrics
+	Ping() bool
 }

@@ -21,6 +21,13 @@ func NewMetricServer(metricRepo repositories.MetricStorage) *MetricServer {
 	return &MetricServer{store: metricRepo, logger: logger}
 }
 
+func (ms *MetricServer) PingStorage(w http.ResponseWriter, r *http.Request) {
+	if !ms.store.Ping() {
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+}
+
 func (ms *MetricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 	var metricObj metrics.Metrics
 
