@@ -31,11 +31,11 @@ func main() {
 
 	var mStorage repositories.MetricStorage
 
-	if cfg.DatabaseDNS == "" {
+	if cfg.DatabaseDSN == "" {
 		memS := memory.NewMemStorage()
 		mStorage = memS
 	} else {
-		postgresS := postgres.NewPostgresStorage(cfg.DatabaseDNS)
+		postgresS := postgres.NewPostgresStorage(cfg.DatabaseDSN)
 		defer postgresS.Close()
 		mStorage = postgresS
 	}

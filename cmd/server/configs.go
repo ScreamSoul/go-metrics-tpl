@@ -7,7 +7,7 @@ import (
 )
 
 type Postgres struct {
-	DatabaseDNS string `env:"DATABASE_DSN"`
+	DatabaseDSN string `env:"DATABASE_DSN"`
 }
 
 type Config struct {
@@ -27,7 +27,7 @@ func NewConfig() (*Config, error) {
 	flag.IntVar(&cfg.StoreInterval, "i", 300, "Интервал времени в секундах, по истечении которого текущие показания сервера сохраняются на диск")
 	flag.StringVar(&cfg.FileStoragePath, "f", "/tmp/metrics-db.json", "Полное имя файла, куда сохраняются текущие значения")
 	flag.BoolVar(&cfg.Restore, "r", true, "Загружать или нет ранее сохранённые значения из указанного файла при старте сервера")
-	flag.StringVar(&cfg.DatabaseDNS, "d", "", "Строка подключения к базе")
+	flag.StringVar(&cfg.DatabaseDSN, "d", "", "Строка подключения к базе")
 
 	flag.Parse()
 
