@@ -32,3 +32,4 @@ statictest*
 *.html
 
 /docker_data
+*.json
