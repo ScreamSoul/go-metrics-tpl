@@ -22,7 +22,7 @@ func NewMetricServer(metricRepo repositories.MetricStorage) *MetricServer {
 }
 
 func (ms *MetricServer) PingStorage(w http.ResponseWriter, r *http.Request) {
-	if !ms.store.Ping() {
+	if !ms.store.Ping(r.Context()) {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
@@ -55,7 +55,7 @@ func (ms *MetricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ms.store.Add(metricObj)
+	ms.store.Add(r.Context(), metricObj)
 }
 
 func (ms *MetricServer) GetMetricValue(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +70,7 @@ func (ms *MetricServer) GetMetricValue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ms.store.Get(metricObj)
+	err = ms.store.Get(r.Context(), metricObj)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -90,7 +90,7 @@ func (ms *MetricServer) GetMetricJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := ms.store.Get(&metricObj)
+	err := ms.store.Get(r.Context(), &metricObj)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -106,7 +106,7 @@ func (ms *MetricServer) GetMetricJSON(w http.ResponseWriter, r *http.Request) {
 
 func (ms *MetricServer) ListMetrics(w http.ResponseWriter, r *http.Request) {
 
-	metrics := ms.store.List()
+	metrics := ms.store.List(r.Context())
 
 	w.Header().Set("Content-Type", "text/html")
 

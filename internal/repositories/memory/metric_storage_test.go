@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -39,6 +40,8 @@ func (s *MemStorageSuite) TearDownTest() {
 }
 
 func (s *MemStorageSuite) TestAdd() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	testCases := []struct {
 		metric metrics.Metrics
@@ -55,7 +58,7 @@ func (s *MemStorageSuite) TestAdd() {
 	}
 
 	for _, tc := range testCases {
-		s.storage.Add(tc.metric)
+		s.storage.Add(ctx, tc.metric)
 
 		switch tc.metric.MType {
 		case metrics.Gauge:
@@ -67,6 +70,8 @@ func (s *MemStorageSuite) TestAdd() {
 }
 
 func (s *MemStorageSuite) TestGet() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	testCases := []struct {
 		initDB func()
@@ -92,7 +97,7 @@ func (s *MemStorageSuite) TestGet() {
 	for _, tc := range testCases {
 		tc.initDB()
 
-		err := s.storage.Get(&tc.metric)
+		err := s.storage.Get(ctx, &tc.metric)
 
 		s.Require().NoError(err, s.storage)
 
@@ -108,6 +113,8 @@ func (s *MemStorageSuite) TestGet() {
 }
 
 func (s *MemStorageSuite) TestList() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	testCases := []struct {
 		initDB func()
@@ -129,7 +136,7 @@ func (s *MemStorageSuite) TestList() {
 	for _, tc := range testCases {
 		tc.initDB()
 
-		resMetrics := s.storage.List()
+		resMetrics := s.storage.List(ctx)
 
 		s.Equal(tc.expect, resMetrics)
 

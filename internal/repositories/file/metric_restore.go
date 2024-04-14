@@ -1,6 +1,7 @@
 package file
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"time"
@@ -21,6 +22,7 @@ type FileRestoreMetricWrapper struct {
 }
 
 func NewFileRestoreMetricWrapper(
+	ctx context.Context,
 	ms repositories.MetricStorage,
 	restoreFile string,
 	restoreInterval int,
@@ -37,24 +39,24 @@ func NewFileRestoreMetricWrapper(
 	}
 
 	if restoreMetric.IsActiveRestore && restoreMetric.restoreInit {
-		restoreMetric.Load()
+		restoreMetric.Load(ctx)
 	}
 
 	if restoreMetric.IsActiveRestore && restoreMetric.restoreInterval > 0 {
-		go func() {
+		go func(context.Context) {
 			ticker := time.NewTicker(time.Duration(restoreMetric.restoreInterval) * time.Second)
 			defer ticker.Stop()
 
 			for range ticker.C {
-				restoreMetric.Save()
+				restoreMetric.Save(ctx)
 			}
-		}()
+		}(ctx)
 	}
 
 	return restoreMetric
 }
 
-func (wrapper *FileRestoreMetricWrapper) Save() {
+func (wrapper *FileRestoreMetricWrapper) Save(ctx context.Context) {
 	wrapper.logger.Info("Save metric to file")
 
 	file, err := os.OpenFile(wrapper.restoreFile, os.O_WRONLY|os.O_CREATE, 0666)
@@ -64,12 +66,12 @@ func (wrapper *FileRestoreMetricWrapper) Save() {
 	}
 	defer file.Close()
 
-	if err := json.NewEncoder(file).Encode(wrapper.ms.List()); err != nil {
+	if err := json.NewEncoder(file).Encode(wrapper.ms.List(ctx)); err != nil {
 		wrapper.logger.Error("Error saving metrics to file", zap.Error(err))
 	}
 }
 
-func (wrapper *FileRestoreMetricWrapper) Load() {
+func (wrapper *FileRestoreMetricWrapper) Load(ctx context.Context) {
 
 	wrapper.logger.Info("Load metric from file")
 
@@ -93,25 +95,25 @@ func (wrapper *FileRestoreMetricWrapper) Load() {
 	}
 
 	for _, metric := range metrics {
-		wrapper.ms.Add(metric)
+		wrapper.ms.Add(ctx, metric)
 	}
 }
 
-func (wrapper *FileRestoreMetricWrapper) Get(metric *metrics.Metrics) error {
-	return wrapper.ms.Get(metric)
+func (wrapper *FileRestoreMetricWrapper) Get(ctx context.Context, metric *metrics.Metrics) error {
+	return wrapper.ms.Get(ctx, metric)
 }
 
-func (wrapper *FileRestoreMetricWrapper) List() (metics []metrics.Metrics) {
-	return wrapper.ms.List()
+func (wrapper *FileRestoreMetricWrapper) List(ctx context.Context) (metics []metrics.Metrics) {
+	return wrapper.ms.List(ctx)
 }
 
-func (wrapper *FileRestoreMetricWrapper) Add(m metrics.Metrics) {
-	wrapper.ms.Add(m)
+func (wrapper *FileRestoreMetricWrapper) Add(ctx context.Context, m metrics.Metrics) {
+	wrapper.ms.Add(ctx, m)
 	if wrapper.IsActiveRestore && wrapper.restoreInterval == 0 {
-		wrapper.Save()
+		wrapper.Save(ctx)
 	}
 }
 
-func (wrapper *FileRestoreMetricWrapper) Ping() bool {
-	return wrapper.ms.Ping()
+func (wrapper *FileRestoreMetricWrapper) Ping(ctx context.Context) bool {
+	return wrapper.ms.Ping(ctx)
 }

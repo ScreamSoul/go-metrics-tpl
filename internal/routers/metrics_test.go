@@ -1,6 +1,7 @@
 package routers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -62,7 +63,7 @@ func TestUpdateRouter(t *testing.T) {
 	defer ts.Close()
 
 	mockDB.AddMock.Set(
-		func(m metrics.Metrics) {
+		func(ctx context.Context, m metrics.Metrics) {
 		},
 	)
 
@@ -130,7 +131,7 @@ func TestValueRouter(t *testing.T) {
 	)
 	defer ts.Close()
 
-	mockDB.GetMock.Set(func(m *metrics.Metrics) (err error) {
+	mockDB.GetMock.Set(func(ctx context.Context, m *metrics.Metrics) (err error) {
 		var intValue int64 = 1
 		if m.MType == metrics.Counter && m.ID == "someMetric1" {
 			m.Delta = &intValue
@@ -257,7 +258,7 @@ func TestPingRouter(t *testing.T) {
 			method: "GET",
 			status: http.StatusOK,
 			mock: func() {
-				mockDB.PingMock.Expect().Return(true)
+				mockDB.PingMock.Return(true)
 			},
 		},
 		{
@@ -265,7 +266,7 @@ func TestPingRouter(t *testing.T) {
 			method: "GET",
 			status: http.StatusInternalServerError,
 			mock: func() {
-				mockDB.PingMock.Expect().Return(false)
+				mockDB.PingMock.Return(false)
 			},
 		},
 	}

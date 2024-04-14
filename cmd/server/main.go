@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/screamsoul/go-metrics-tpl/internal/handlers"
@@ -15,6 +16,9 @@ import (
 )
 
 func main() {
+	ctx, cansel := context.WithCancel(context.Background())
+	defer cansel()
+
 	cfg, err := NewConfig()
 
 	if err != nil {
@@ -28,7 +32,6 @@ func main() {
 	logger := logging.GetLogger()
 
 	// Create MetricStorage
-
 	var mStorage repositories.MetricStorage
 
 	if cfg.DatabaseDSN == "" {
@@ -40,9 +43,9 @@ func main() {
 		mStorage = postgresS
 	}
 
-	// Create resore wrapper
-
+	// Create restore wrapper
 	mStorageRestore := file.NewFileRestoreMetricWrapper(
+		ctx,
 		mStorage,
 		cfg.FileStoragePath,
 		cfg.StoreInterval,
@@ -50,7 +53,7 @@ func main() {
 	)
 
 	if mStorageRestore.IsActiveRestore {
-		defer mStorageRestore.Save()
+		defer mStorageRestore.Save(context.Background())
 	}
 
 	var metricServer = handlers.NewMetricServer(

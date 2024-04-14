@@ -1,6 +1,11 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/screamsoul/go-metrics-tpl/internal/client"
@@ -10,6 +15,9 @@ import (
 )
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	cfg, err := NewConfig()
 
 	if err != nil {
@@ -39,9 +47,9 @@ func main() {
 		}
 	}()
 
-	go func() {
+	go func(ctx context.Context) {
 		for {
-			for _, m := range metricRepo.List() {
+			for _, m := range metricRepo.List(ctx) {
 				go metricClient.SendMetric(
 					cfg.GetUpdateMetricURL(),
 					m,
@@ -49,7 +57,16 @@ func main() {
 			}
 			time.Sleep(reportInterval)
 		}
+	}(ctx)
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-sigChan
+		cancel()
 	}()
 
-	select {}
+	<-ctx.Done()
+	fmt.Println("Agent closed:", ctx.Err())
 }

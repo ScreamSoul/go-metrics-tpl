@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -24,7 +25,7 @@ func NewMemStorage() *MemStorage {
 	}
 }
 
-func (db *MemStorage) Add(m metrics.Metrics) {
+func (db *MemStorage) Add(ctx context.Context, m metrics.Metrics) {
 	db.Lock()
 	defer db.Unlock()
 
@@ -36,7 +37,7 @@ func (db *MemStorage) Add(m metrics.Metrics) {
 	}
 }
 
-func (db *MemStorage) Get(metric *metrics.Metrics) error {
+func (db *MemStorage) Get(ctx context.Context, metric *metrics.Metrics) error {
 	switch metric.MType {
 	case metrics.Gauge:
 		if v, ok := db.gauge[metric.ID]; ok {
@@ -53,7 +54,7 @@ func (db *MemStorage) Get(metric *metrics.Metrics) error {
 	return errors.New("not found")
 }
 
-func (db *MemStorage) List() (metics []metrics.Metrics) {
+func (db *MemStorage) List(ctx context.Context) (metics []metrics.Metrics) {
 	for n, v := range db.gauge {
 		metics = append(metics, metrics.Metrics{
 			ID:    n,
@@ -71,6 +72,6 @@ func (db *MemStorage) List() (metics []metrics.Metrics) {
 	return
 }
 
-func (db *MemStorage) Ping() bool {
+func (db *MemStorage) Ping(ctx context.Context) bool {
 	return true
 }
