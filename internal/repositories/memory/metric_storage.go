@@ -25,7 +25,7 @@ func NewMemStorage() *MemStorage {
 	}
 }
 
-func (db *MemStorage) Add(ctx context.Context, m metrics.Metrics) {
+func (db *MemStorage) Add(ctx context.Context, m metrics.Metrics) error {
 	db.Lock()
 	defer db.Unlock()
 
@@ -35,6 +35,7 @@ func (db *MemStorage) Add(ctx context.Context, m metrics.Metrics) {
 	case metrics.Counter:
 		db.counter[m.ID] += *m.Delta
 	}
+	return nil
 }
 
 func (db *MemStorage) Get(ctx context.Context, metric *metrics.Metrics) error {
@@ -54,7 +55,8 @@ func (db *MemStorage) Get(ctx context.Context, metric *metrics.Metrics) error {
 	return errors.New("not found")
 }
 
-func (db *MemStorage) List(ctx context.Context) (metics []metrics.Metrics) {
+func (db *MemStorage) List(ctx context.Context) ([]metrics.Metrics, error) {
+	metics := make([]metrics.Metrics, 0, len(db.counter)+len(db.gauge))
 	for n, v := range db.gauge {
 		metics = append(metics, metrics.Metrics{
 			ID:    n,
@@ -69,7 +71,7 @@ func (db *MemStorage) List(ctx context.Context) (metics []metrics.Metrics) {
 			Delta: &v,
 		})
 	}
-	return
+	return metics, nil
 }
 
 func (db *MemStorage) Ping(ctx context.Context) bool {

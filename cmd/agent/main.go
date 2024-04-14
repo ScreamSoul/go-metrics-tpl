@@ -49,7 +49,11 @@ func main() {
 
 	go func(ctx context.Context) {
 		for {
-			for _, m := range metricRepo.List(ctx) {
+			metricsList, err := metricRepo.List(ctx)
+			if err != nil {
+				panic(err)
+			}
+			for _, m := range metricsList {
 				go metricClient.SendMetric(
 					cfg.GetUpdateMetricURL(),
 					m,

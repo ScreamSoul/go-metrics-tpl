@@ -63,7 +63,8 @@ func TestUpdateRouter(t *testing.T) {
 	defer ts.Close()
 
 	mockDB.AddMock.Set(
-		func(ctx context.Context, m metrics.Metrics) {
+		func(ctx context.Context, m metrics.Metrics) error {
+			return nil
 		},
 	)
 
@@ -197,7 +198,7 @@ func TestListRouter(t *testing.T) {
 	}
 
 	mockDB := mocks.NewMetricStorageMock(mc).ListMock.Return(
-		mockMetricList,
+		mockMetricList, nil,
 	)
 
 	defer mockDB.MinimockFinish()

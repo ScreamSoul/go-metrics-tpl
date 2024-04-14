@@ -55,7 +55,11 @@ func (ms *MetricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ms.store.Add(r.Context(), metricObj)
+	if err := ms.store.Add(r.Context(), metricObj); err != nil {
+		ms.logger.Error("Error update metric", zap.Error(err))
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (ms *MetricServer) GetMetricValue(w http.ResponseWriter, r *http.Request) {
@@ -106,7 +110,13 @@ func (ms *MetricServer) GetMetricJSON(w http.ResponseWriter, r *http.Request) {
 
 func (ms *MetricServer) ListMetrics(w http.ResponseWriter, r *http.Request) {
 
-	metrics := ms.store.List(r.Context())
+	metrics, err := ms.store.List(r.Context())
+
+	if err != nil {
+		ms.logger.Error("error read metrics", zap.Error(err))
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "text/html")
 

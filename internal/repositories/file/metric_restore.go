@@ -57,45 +57,55 @@ func NewFileRestoreMetricWrapper(
 }
 
 func (wrapper *FileRestoreMetricWrapper) Save(ctx context.Context) {
-	wrapper.logger.Info("Save metric to file")
+	wrapper.logger.Info("save metric to file")
 
 	file, err := os.OpenFile(wrapper.restoreFile, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
-		wrapper.logger.Error("Error open or create file for write", zap.Error(err))
+		wrapper.logger.Error("error open or create file for write", zap.Error(err))
 		return
 	}
 	defer file.Close()
 
-	if err := json.NewEncoder(file).Encode(wrapper.ms.List(ctx)); err != nil {
-		wrapper.logger.Error("Error saving metrics to file", zap.Error(err))
+	metricsList, err := wrapper.ms.List(ctx)
+	if err != nil {
+		wrapper.logger.Error("error read metric", zap.Error(err))
+		return
+	}
+
+	if err := json.NewEncoder(file).Encode(metricsList); err != nil {
+		wrapper.logger.Error("error saving metrics to file", zap.Error(err))
 	}
 }
 
 func (wrapper *FileRestoreMetricWrapper) Load(ctx context.Context) {
 
-	wrapper.logger.Info("Load metric from file")
+	wrapper.logger.Info("load metric from file")
 
 	file, err := os.OpenFile(wrapper.restoreFile, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
-		wrapper.logger.Error("Error open or create file for read", zap.Error(err))
+		wrapper.logger.Error("error open or create file for read", zap.Error(err))
 		return
 	}
 	defer file.Close()
 
 	fileInfo, err := os.Stat(wrapper.restoreFile)
 	if err != nil || fileInfo.Size() == 0 {
-		wrapper.logger.Warn("The open file has zero size or has just been created")
+		wrapper.logger.Warn("the open file has zero size or has just been created")
 		return
 	}
 
 	metrics := []metrics.Metrics{}
 	if err := json.NewDecoder(file).Decode(&metrics); err != nil {
-		wrapper.logger.Error("Error loading metrics from file", zap.Error(err))
+		wrapper.logger.Error("error loading metrics from file", zap.Error(err))
 		return
 	}
 
 	for _, metric := range metrics {
-		wrapper.ms.Add(ctx, metric)
+		err := wrapper.ms.Add(ctx, metric)
+		if err != nil {
+			wrapper.logger.Error("error append metric to storage from file", zap.Error(err))
+			return
+		}
 	}
 }
 
@@ -103,15 +113,18 @@ func (wrapper *FileRestoreMetricWrapper) Get(ctx context.Context, metric *metric
 	return wrapper.ms.Get(ctx, metric)
 }
 
-func (wrapper *FileRestoreMetricWrapper) List(ctx context.Context) (metics []metrics.Metrics) {
+func (wrapper *FileRestoreMetricWrapper) List(ctx context.Context) ([]metrics.Metrics, error) {
 	return wrapper.ms.List(ctx)
 }
 
-func (wrapper *FileRestoreMetricWrapper) Add(ctx context.Context, m metrics.Metrics) {
-	wrapper.ms.Add(ctx, m)
-	if wrapper.IsActiveRestore && wrapper.restoreInterval == 0 {
+func (wrapper *FileRestoreMetricWrapper) Add(ctx context.Context, m metrics.Metrics) error {
+	err := wrapper.ms.Add(ctx, m)
+
+	if err != nil && wrapper.IsActiveRestore && wrapper.restoreInterval == 0 {
 		wrapper.Save(ctx)
 	}
+
+	return err
 }
 
 func (wrapper *FileRestoreMetricWrapper) Ping(ctx context.Context) bool {

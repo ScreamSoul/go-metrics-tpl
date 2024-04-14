@@ -58,8 +58,8 @@ func (s *MemStorageSuite) TestAdd() {
 	}
 
 	for _, tc := range testCases {
-		s.storage.Add(ctx, tc.metric)
-
+		err := s.storage.Add(ctx, tc.metric)
+		s.Require().NoError(err)
 		switch tc.metric.MType {
 		case metrics.Gauge:
 			s.Equal(tc.expect, fmt.Sprint(s.storage.gauge[tc.metric.ID]))
@@ -136,8 +136,8 @@ func (s *MemStorageSuite) TestList() {
 	for _, tc := range testCases {
 		tc.initDB()
 
-		resMetrics := s.storage.List(ctx)
-
+		resMetrics, err := s.storage.List(ctx)
+		s.NoError(err)
 		s.Equal(tc.expect, resMetrics)
 
 		s.TearDownTest()
