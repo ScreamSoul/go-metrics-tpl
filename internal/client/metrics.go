@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -58,26 +59,25 @@ func NewMetricsClient(compressRequest bool) *MetricsClient {
 	return client
 }
 
-func (client *MetricsClient) SendMetric(uploadURL string, metricsList []metrics.Metrics) {
+func (client *MetricsClient) SendMetric(ctx context.Context, uploadURL string, metricsList []metrics.Metrics) error {
 	jsonData, err := json.Marshal(metricsList)
 	if err != nil {
 		panic(err)
 	}
 
 	resp, err := resty.New().R().
+		SetContext(ctx).
 		SetHeader("Content-Type", "application/json").
 		SetBody(jsonData).
 		Post(uploadURL)
 
 	if err != nil {
 		client.logger.Error("send error", zap.Error(err))
-	}
-
-	if resp.IsError() {
-		client.logger.Error("error response", zap.Any("error", resp.Error()))
+		return err
 	}
 
 	client.logger.Info(
 		"send metric", zap.Any("metric", resp.Request.Body), zap.String("url", uploadURL),
 	)
+	return nil
 }
