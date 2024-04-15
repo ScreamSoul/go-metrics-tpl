@@ -99,8 +99,8 @@ func (storage *PostgresStorage) BulkAdd(ctx context.Context, metricList []metric
 		INSERT INTO metrics (name, m_type, delta, value)
 		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (name) DO UPDATE SET
-			delta = CASE WHEN metrics.m_type = 'counter' THEN metrics.delta + excluded.delta ELSE excluded.delta END,
-			value = excluded.value;
+			delta = CASE WHEN metrics.m_type = 'counter' THEN metrics.delta + excluded.delta ELSE metrics.delta END,
+			value = CASE WHEN metrics.m_type = 'gauge' THEN excluded.value ELSE metrics.value END;
 	`)
 	if err != nil {
 		return err
@@ -108,7 +108,20 @@ func (storage *PostgresStorage) BulkAdd(ctx context.Context, metricList []metric
 	defer stmt.Close()
 
 	for _, metric := range metricList {
-		_, err = stmt.ExecContext(ctx, metric.ID, metric.MType, metric.Delta, metric.Value)
+		var delta sql.NullInt64
+		var value sql.NullFloat64
+
+		if metric.Delta != nil {
+			delta.Int64 = *metric.Delta
+			delta.Valid = true
+		}
+
+		if metric.Value != nil {
+			value.Float64 = *metric.Value
+			value.Valid = true
+		}
+
+		_, err = stmt.ExecContext(ctx, metric.ID, metric.MType, delta, value)
 		if err != nil {
 			return err
 		}

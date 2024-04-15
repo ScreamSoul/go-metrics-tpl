@@ -38,7 +38,6 @@ func (ms *MetricServer) UpdateMetricBulk(w http.ResponseWriter, r *http.Request)
 	var metricsListChunk []metrics.Metrics
 
 	decoder := json.NewDecoder(r.Body)
-	var currentMetric *metrics.Metrics
 
 	if _, err := decoder.Token(); err != nil {
 		http.Error(w, "bad json body", http.StatusBadRequest)
@@ -46,6 +45,7 @@ func (ms *MetricServer) UpdateMetricBulk(w http.ResponseWriter, r *http.Request)
 	}
 
 	for decoder.More() {
+		var currentMetric metrics.Metrics
 		if err := decoder.Decode(&currentMetric); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -55,7 +55,7 @@ func (ms *MetricServer) UpdateMetricBulk(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		metricsListChunk = append(metricsListChunk, *currentMetric)
+		metricsListChunk = append(metricsListChunk, currentMetric)
 		if len(metricsListChunk) == 100 {
 			if err := ms.store.BulkAdd(r.Context(), metricsListChunk); err != nil {
 				ms.logger.Error("Error update metrics chunk", zap.Error(err))
