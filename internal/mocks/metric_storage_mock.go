@@ -215,10 +215,11 @@ func (mmAdd *MetricStorageMock) Add(ctx context.Context, m metrics.Metrics) (err
 		}
 
 		mm_results := mmAdd.AddMock.defaultExpectation.results
-		if mm_results == nil {
-			mmAdd.t.Fatal("No results are set for the MetricStorageMock.Add")
+		if mm_results != nil {
+			return (*mm_results).err
 		}
-		return (*mm_results).err
+		mmAdd.t.Fatal("No results are set for the MetricStorageMock.Add")
+
 	}
 	if mmAdd.funcAdd != nil {
 		return mmAdd.funcAdd(ctx, m)
@@ -431,10 +432,11 @@ func (mmBulkAdd *MetricStorageMock) BulkAdd(ctx context.Context, m []metrics.Met
 		}
 
 		mm_results := mmBulkAdd.BulkAddMock.defaultExpectation.results
-		if mm_results == nil {
-			mmBulkAdd.t.Fatal("No results are set for the MetricStorageMock.BulkAdd")
+		if mm_results != nil {
+			return (*mm_results).err
 		}
-		return (*mm_results).err
+		mmBulkAdd.t.Fatal("No results are set for the MetricStorageMock.BulkAdd")
+
 	}
 	if mmBulkAdd.funcBulkAdd != nil {
 		return mmBulkAdd.funcBulkAdd(ctx, m)
@@ -647,10 +649,11 @@ func (mmGet *MetricStorageMock) Get(ctx context.Context, m *metrics.Metrics) (er
 		}
 
 		mm_results := mmGet.GetMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGet.t.Fatal("No results are set for the MetricStorageMock.Get")
+		if mm_results != nil {
+			return (*mm_results).err
 		}
-		return (*mm_results).err
+		mmGet.t.Fatal("No results are set for the MetricStorageMock.Get")
+
 	}
 	if mmGet.funcGet != nil {
 		return mmGet.funcGet(ctx, m)
@@ -863,10 +866,11 @@ func (mmList *MetricStorageMock) List(ctx context.Context) (ma1 []metrics.Metric
 		}
 
 		mm_results := mmList.ListMock.defaultExpectation.results
-		if mm_results == nil {
-			mmList.t.Fatal("No results are set for the MetricStorageMock.List")
+		if mm_results != nil {
+			return (*mm_results).ma1, (*mm_results).err
 		}
-		return (*mm_results).ma1, (*mm_results).err
+		mmList.t.Fatal("No results are set for the MetricStorageMock.List")
+
 	}
 	if mmList.funcList != nil {
 		return mmList.funcList(ctx)
@@ -1078,10 +1082,11 @@ func (mmPing *MetricStorageMock) Ping(ctx context.Context) (b1 bool) {
 		}
 
 		mm_results := mmPing.PingMock.defaultExpectation.results
-		if mm_results == nil {
-			mmPing.t.Fatal("No results are set for the MetricStorageMock.Ping")
+		if mm_results != nil {
+			return (*mm_results).b1
 		}
-		return (*mm_results).b1
+		mmPing.t.Fatal("No results are set for the MetricStorageMock.Ping")
+
 	}
 	if mmPing.funcPing != nil {
 		return mmPing.funcPing(ctx)

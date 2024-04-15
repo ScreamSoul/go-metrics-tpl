@@ -93,7 +93,11 @@ func (storage *PostgresStorage) BulkAdd(ctx context.Context, metricList []metric
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			storage.logging.Warn("rollback transaction error", zap.Error(err))
+		}
+	}()
 
 	stmt, err := tx.PreparexContext(ctx, `
 		INSERT INTO metrics (name, m_type, delta, value)

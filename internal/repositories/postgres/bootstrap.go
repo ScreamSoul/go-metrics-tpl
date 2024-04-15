@@ -3,14 +3,20 @@ package postgres
 import (
 	"context"
 	"fmt"
+
+	"go.uber.org/zap"
 )
 
-func (store *PostgresStorage) Bootstrap(ctx context.Context) error {
-	tx, err := store.db.BeginTx(ctx, nil)
+func (storage *PostgresStorage) Bootstrap(ctx context.Context) error {
+	tx, err := storage.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			storage.logging.Warn("rollback transaction error", zap.Error(err))
+		}
+	}()
 
 	// SQL-запрос для создания таблицы с метриками
 	createTableQuery := `
