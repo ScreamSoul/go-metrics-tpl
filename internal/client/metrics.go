@@ -58,8 +58,8 @@ func NewMetricsClient(compressRequest bool) *MetricsClient {
 	return client
 }
 
-func (client *MetricsClient) SendMetric(uploadURL string, metric metrics.Metrics) {
-	jsonData, err := json.Marshal(metric)
+func (client *MetricsClient) SendMetric(uploadURL string, metricsList []metrics.Metrics) {
+	jsonData, err := json.Marshal(metricsList)
 	if err != nil {
 		panic(err)
 	}

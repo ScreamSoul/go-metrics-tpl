@@ -99,13 +99,10 @@ func (wrapper *FileRestoreMetricWrapper) Load(ctx context.Context) {
 		wrapper.logger.Error("error loading metrics from file", zap.Error(err))
 		return
 	}
-
-	for _, metric := range metrics {
-		err := wrapper.ms.Add(ctx, metric)
-		if err != nil {
-			wrapper.logger.Error("error append metric to storage from file", zap.Error(err))
-			return
-		}
+	err = wrapper.ms.BulkAdd(ctx, metrics)
+	if err != nil {
+		wrapper.logger.Error("error append metric to storage from file", zap.Error(err))
+		return
 	}
 }
 
@@ -129,4 +126,8 @@ func (wrapper *FileRestoreMetricWrapper) Add(ctx context.Context, m metrics.Metr
 
 func (wrapper *FileRestoreMetricWrapper) Ping(ctx context.Context) bool {
 	return wrapper.ms.Ping(ctx)
+}
+
+func (wrapper *FileRestoreMetricWrapper) BulkAdd(ctx context.Context, metricList []metrics.Metrics) error {
+	return wrapper.ms.BulkAdd(ctx, metricList)
 }

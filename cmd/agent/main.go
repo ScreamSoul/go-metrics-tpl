@@ -53,12 +53,10 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			for _, m := range metricsList {
-				go metricClient.SendMetric(
-					cfg.GetUpdateMetricURL(),
-					m,
-				)
-			}
+			go metricClient.SendMetric(
+				cfg.GetUpdateMetricURL(),
+				metricsList,
+			)
 			time.Sleep(reportInterval)
 		}
 	}(ctx)

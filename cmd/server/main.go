@@ -40,6 +40,11 @@ func main() {
 	} else {
 		postgresS := postgres.NewPostgresStorage(cfg.DatabaseDSN)
 		defer postgresS.Close()
+
+		if err := postgresS.Bootstrap(ctx); err != nil {
+			panic(err)
+		}
+
 		mStorage = postgresS
 	}
 

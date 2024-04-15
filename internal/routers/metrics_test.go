@@ -14,13 +14,20 @@ import (
 	"github.com/screamsoul/go-metrics-tpl/internal/handlers"
 	"github.com/screamsoul/go-metrics-tpl/internal/mocks"
 	"github.com/screamsoul/go-metrics-tpl/internal/models/metrics"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-func testRequest(
-	t *testing.T,
-	ts *httptest.Server,
+type MetricRouterSuite struct {
+	suite.Suite
+	server *httptest.Server
+	mockDB *mocks.MetricStorageMock
+}
+
+func TestMemStorageSuite(t *testing.T) {
+	suite.Run(t, new(MetricRouterSuite))
+}
+
+func (s *MetricRouterSuite) serverRequest(
 	method,
 	path string,
 	body interface{},
@@ -30,7 +37,7 @@ func testRequest(
 	req := resty.New().R()
 
 	req.Method = method
-	req.URL = ts.URL + path
+	req.URL = s.server.URL + path
 
 	if body != nil {
 		req.Body = body
@@ -44,25 +51,30 @@ func testRequest(
 	}
 
 	resp, err := req.Send()
-	require.NoError(t, err, "error making HTTP request")
+	s.Require().NoError(err, "error making HTTP request")
 
 	return resp
 }
 
-func TestUpdateRouter(t *testing.T) {
-	mc := minimock.NewController(t)
+func (s *MetricRouterSuite) SetupTest() {
+	mc := minimock.NewController(s.T())
 
-	mockDB := mocks.NewMetricStorageMock(mc)
-	defer mockDB.MinimockFinish()
-
-	ts := httptest.NewServer(
+	s.mockDB = mocks.NewMetricStorageMock(mc)
+	s.server = httptest.NewServer(
 		NewMetricRouter(
-			handlers.NewMetricServer(mockDB),
+			handlers.NewMetricServer(s.mockDB),
 		),
 	)
-	defer ts.Close()
+}
 
-	mockDB.AddMock.Set(
+func (s *MetricRouterSuite) TearDownTest() {
+	s.server.Close()
+	s.mockDB.MinimockFinish()
+}
+
+func (s *MetricRouterSuite) TestUpdateRouter() {
+
+	s.mockDB.AddMock.Set(
 		func(ctx context.Context, m metrics.Metrics) error {
 			return nil
 		},
@@ -70,7 +82,7 @@ func TestUpdateRouter(t *testing.T) {
 
 	var testTable = []struct {
 		name   string
-		body   map[string]interface{}
+		body   interface{}
 		method string
 		status int
 	}{
@@ -106,33 +118,97 @@ func TestUpdateRouter(t *testing.T) {
 		},
 	}
 	for _, v := range testTable {
-		t.Run(v.name, func(t *testing.T) {
-			resp := testRequest(t, ts, v.method, "/update/", v.body, http.Header{"Content-Type": {"application/json"}})
-			assert.Equal(
-				t,
+		s.Suite.Run(v.name, func() {
+			resp := s.serverRequest(v.method, "/update/", v.body, http.Header{"Content-Type": {"application/json"}})
+			s.Equal(
 				v.status,
 				resp.StatusCode(),
 				fmt.Sprintf("Resp body: %s", string(resp.Body())),
 			)
 		})
 	}
-
 }
 
-func TestValueRouter(t *testing.T) {
-	mc := minimock.NewController(t)
-
-	mockDB := mocks.NewMetricStorageMock(mc)
-	defer mockDB.MinimockFinish()
-
-	ts := httptest.NewServer(
-		NewMetricRouter(
-			handlers.NewMetricServer(mockDB),
-		),
+func (s *MetricRouterSuite) TestUpdateBulkRouter() {
+	s.mockDB.BulkAddMock.Set(
+		func(ctx context.Context, m []metrics.Metrics) error {
+			return nil
+		},
 	)
-	defer ts.Close()
 
-	mockDB.GetMock.Set(func(ctx context.Context, m *metrics.Metrics) (err error) {
+	var testTable = []struct {
+		name   string
+		body   interface{}
+		method string
+		status int
+	}{
+		{
+			name: "update batch",
+			body: []map[string]interface{}{
+				{"type": "counter", "delta": 1, "id": "someMetric1"},
+				{"type": "gauge", "value": 1.2, "id": "someMetric2"},
+				{"type": "gauge", "value": 1.3, "id": "someMetric3"},
+			},
+			method: "POST",
+			status: http.StatusOK,
+		},
+	}
+	for _, v := range testTable {
+		s.Suite.Run(v.name, func() {
+			resp := s.serverRequest(v.method, "/updates/", v.body, http.Header{"Content-Type": {"application/json"}})
+			s.Equal(
+				v.status,
+				resp.StatusCode(),
+				fmt.Sprintf("Resp body: %s", string(resp.Body())),
+			)
+		})
+	}
+}
+
+func (s *MetricRouterSuite) TestUpdateFromPath() {
+	s.mockDB.AddMock.Set(
+		func(ctx context.Context, m metrics.Metrics) error {
+			return nil
+		},
+	)
+
+	var testTable = []struct {
+		name   string
+		path   string
+		status int
+	}{
+		{
+			name:   "status ok",
+			path:   "/update/gauge/sume_metric1/1.2",
+			status: http.StatusOK,
+		},
+		{
+			name:   "bad type",
+			path:   "/update/sume_gauge/sume_metric1/1.2",
+			status: http.StatusBadRequest,
+		},
+		{
+			name:   "bad value",
+			path:   "/update/gauge/sume_metric1/asd",
+			status: http.StatusBadRequest,
+		},
+	}
+
+	for _, v := range testTable {
+		s.Suite.Run(v.name, func() {
+			resp := s.serverRequest("POST", v.path, nil)
+			s.Equal(
+				v.status,
+				resp.StatusCode(),
+				fmt.Sprintf("Resp body: %s", string(resp.Body())),
+			)
+		})
+	}
+}
+
+func (s *MetricRouterSuite) TestValueRouter() {
+
+	s.mockDB.GetMock.Set(func(ctx context.Context, m *metrics.Metrics) (err error) {
 		var intValue int64 = 1
 		if m.MType == metrics.Counter && m.ID == "someMetric1" {
 			m.Delta = &intValue
@@ -174,11 +250,11 @@ func TestValueRouter(t *testing.T) {
 		},
 	}
 	for _, v := range testTable {
-		t.Run(v.name, func(t *testing.T) {
-			resp := testRequest(t, ts, v.method, "/value/", v.body, http.Header{"Content-Type": {"application/json"}})
-			require.Equal(t, v.expectedStatus, resp.StatusCode(), fmt.Sprintf("Resp body: %s", string(resp.Body())))
+		s.Suite.Run(v.name, func() {
+			resp := s.serverRequest(v.method, "/value/", v.body, http.Header{"Content-Type": {"application/json"}})
+			s.Require().Equal(v.expectedStatus, resp.StatusCode(), fmt.Sprintf("Resp body: %s", string(resp.Body())))
 			if v.expectedBody != "" {
-				assert.JSONEq(t, v.expectedBody, string(resp.Body()))
+				s.JSONEq(v.expectedBody, string(resp.Body()))
 			}
 		})
 
@@ -186,8 +262,7 @@ func TestValueRouter(t *testing.T) {
 
 }
 
-func TestListRouter(t *testing.T) {
-	mc := minimock.NewController(t)
+func (s *MetricRouterSuite) TestListRouter() {
 
 	var intValue int64 = 1
 	var floatValue = 1.1
@@ -197,18 +272,9 @@ func TestListRouter(t *testing.T) {
 		{ID: "MetricCounter1", Delta: &intValue, MType: metrics.Counter},
 	}
 
-	mockDB := mocks.NewMetricStorageMock(mc).ListMock.Return(
+	s.mockDB.ListMock.Return(
 		mockMetricList, nil,
 	)
-
-	defer mockDB.MinimockFinish()
-
-	ts := httptest.NewServer(
-		NewMetricRouter(
-			handlers.NewMetricServer(mockDB),
-		),
-	)
-	defer ts.Close()
 
 	var testTable = []struct {
 		name   string
@@ -219,14 +285,14 @@ func TestListRouter(t *testing.T) {
 		{"list json ok", "GET", http.StatusOK, mockMetricList},
 	}
 	for _, v := range testTable {
-		t.Run(v.name, func(t *testing.T) {
-			resp := testRequest(t, ts, v.method, "/", nil)
-			require.Equal(t, v.status, resp.StatusCode())
+		s.Suite.Run(v.name, func() {
+			resp := s.serverRequest(v.method, "/", nil)
+			s.Require().Equal(v.status, resp.StatusCode())
 			if v.status == http.StatusOK {
 				var mList []metrics.Metrics
 				err := json.Unmarshal(resp.Body(), &mList)
-				require.NoError(t, err, string(resp.Body()))
-				assert.Equal(t, v.result, mList)
+				s.Require().NoError(err, string(resp.Body()))
+				s.Equal(v.result, mList)
 			}
 		})
 
@@ -234,19 +300,7 @@ func TestListRouter(t *testing.T) {
 
 }
 
-func TestPingRouter(t *testing.T) {
-	mc := minimock.NewController(t)
-
-	mockDB := mocks.NewMetricStorageMock(mc)
-
-	defer mockDB.MinimockFinish()
-
-	ts := httptest.NewServer(
-		NewMetricRouter(
-			handlers.NewMetricServer(mockDB),
-		),
-	)
-	defer ts.Close()
+func (s *MetricRouterSuite) TestPingRouter() {
 
 	var testTable = []struct {
 		name   string
@@ -259,7 +313,7 @@ func TestPingRouter(t *testing.T) {
 			method: "GET",
 			status: http.StatusOK,
 			mock: func() {
-				mockDB.PingMock.Return(true)
+				s.mockDB.PingMock.Return(true)
 			},
 		},
 		{
@@ -267,17 +321,16 @@ func TestPingRouter(t *testing.T) {
 			method: "GET",
 			status: http.StatusInternalServerError,
 			mock: func() {
-				mockDB.PingMock.Return(false)
+				s.mockDB.PingMock.Return(false)
 			},
 		},
 	}
 	for _, v := range testTable {
-		t.Run(v.name, func(t *testing.T) {
+		s.Suite.Run(v.name, func() {
 			v.mock()
-			resp := testRequest(t, ts, v.method, "/ping", nil)
-			require.Equal(t, v.status, resp.StatusCode())
+			resp := s.serverRequest(v.method, "/ping", nil)
+			s.Require().Equal(v.status, resp.StatusCode())
 		})
 
 	}
-
 }

@@ -28,6 +28,55 @@ func (ms *MetricServer) PingStorage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (ms *MetricServer) UpdateMetricBulk(w http.ResponseWriter, r *http.Request) {
+	contentType := r.Header.Get("Content-Type")
+	if contentType != "application/json" {
+		http.Error(w, "content type must be application/json", http.StatusBadRequest)
+		return
+	}
+
+	var metricsListChunk []metrics.Metrics
+
+	decoder := json.NewDecoder(r.Body)
+	var currentMetric *metrics.Metrics
+
+	if _, err := decoder.Token(); err != nil {
+		http.Error(w, "bad json body", http.StatusBadRequest)
+		return
+	}
+
+	for decoder.More() {
+		if err := decoder.Decode(&currentMetric); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := currentMetric.ValidateValue(); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		metricsListChunk = append(metricsListChunk, *currentMetric)
+		if len(metricsListChunk) == 100 {
+			if err := ms.store.BulkAdd(r.Context(), metricsListChunk); err != nil {
+				ms.logger.Error("Error update metrics chunk", zap.Error(err))
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			metricsListChunk = metricsListChunk[:0]
+		}
+	}
+	if len(metricsListChunk) > 0 {
+		if err := ms.store.BulkAdd(r.Context(), metricsListChunk); err != nil {
+			ms.logger.Error("Error update metrics chunk", zap.Error(err))
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+
+	if _, err := decoder.Token(); err != nil {
+		http.Error(w, "bad json body", http.StatusBadRequest)
+		return
+	}
+}
+
 func (ms *MetricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 	var metricObj metrics.Metrics
 

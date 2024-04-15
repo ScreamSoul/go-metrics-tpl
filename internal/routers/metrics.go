@@ -21,6 +21,7 @@ func NewMetricRouter(
 	r.Post("/value/", mServer.GetMetricJSON)
 	r.Get("/value/{metric_type}/{metric_name}", mServer.GetMetricValue)
 	r.Post("/update/", mServer.UpdateMetric)
+	r.Post("/updates/", mServer.UpdateMetricBulk)
 	r.Post("/update/{metric_type}/{metric_name}/{metric_value}", mServer.UpdateMetric)
 
 	return r

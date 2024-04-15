@@ -22,7 +22,7 @@ func (c *Config) GetServerURL() string {
 }
 
 func (c *Config) GetUpdateMetricURL() string {
-	return fmt.Sprintf("%s/update/", c.GetServerURL())
+	return fmt.Sprintf("%s/updates/", c.GetServerURL())
 }
 
 func NewConfig() (*Config, error) {

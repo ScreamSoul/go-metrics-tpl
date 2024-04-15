@@ -23,6 +23,12 @@ type MetricStorageMock struct {
 	beforeAddCounter uint64
 	AddMock          mMetricStorageMockAdd
 
+	funcBulkAdd          func(ctx context.Context, m []metrics.Metrics) (err error)
+	inspectFuncBulkAdd   func(ctx context.Context, m []metrics.Metrics)
+	afterBulkAddCounter  uint64
+	beforeBulkAddCounter uint64
+	BulkAddMock          mMetricStorageMockBulkAdd
+
 	funcGet          func(ctx context.Context, m *metrics.Metrics) (err error)
 	inspectFuncGet   func(ctx context.Context, m *metrics.Metrics)
 	afterGetCounter  uint64
@@ -52,6 +58,9 @@ func NewMetricStorageMock(t minimock.Tester) *MetricStorageMock {
 
 	m.AddMock = mMetricStorageMockAdd{mock: m}
 	m.AddMock.callArgs = []*MetricStorageMockAddParams{}
+
+	m.BulkAddMock = mMetricStorageMockBulkAdd{mock: m}
+	m.BulkAddMock.callArgs = []*MetricStorageMockBulkAddParams{}
 
 	m.GetMock = mMetricStorageMockGet{mock: m}
 	m.GetMock.callArgs = []*MetricStorageMockGetParams{}
@@ -206,11 +215,10 @@ func (mmAdd *MetricStorageMock) Add(ctx context.Context, m metrics.Metrics) (err
 		}
 
 		mm_results := mmAdd.AddMock.defaultExpectation.results
-		if mm_results != nil {
-			return (*mm_results).err
+		if mm_results == nil {
+			mmAdd.t.Fatal("No results are set for the MetricStorageMock.Add")
 		}
-		mmAdd.t.Fatal("No results are set for the MetricStorageMock.Add")
-
+		return (*mm_results).err
 	}
 	if mmAdd.funcAdd != nil {
 		return mmAdd.funcAdd(ctx, m)
@@ -281,6 +289,222 @@ func (m *MetricStorageMock) MinimockAddInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAdd != nil && mm_atomic.LoadUint64(&m.afterAddCounter) < 1 {
 		m.t.Error("Expected call to MetricStorageMock.Add")
+	}
+}
+
+type mMetricStorageMockBulkAdd struct {
+	mock               *MetricStorageMock
+	defaultExpectation *MetricStorageMockBulkAddExpectation
+	expectations       []*MetricStorageMockBulkAddExpectation
+
+	callArgs []*MetricStorageMockBulkAddParams
+	mutex    sync.RWMutex
+}
+
+// MetricStorageMockBulkAddExpectation specifies expectation struct of the MetricStorage.BulkAdd
+type MetricStorageMockBulkAddExpectation struct {
+	mock    *MetricStorageMock
+	params  *MetricStorageMockBulkAddParams
+	results *MetricStorageMockBulkAddResults
+	Counter uint64
+}
+
+// MetricStorageMockBulkAddParams contains parameters of the MetricStorage.BulkAdd
+type MetricStorageMockBulkAddParams struct {
+	ctx context.Context
+	m   []metrics.Metrics
+}
+
+// MetricStorageMockBulkAddResults contains results of the MetricStorage.BulkAdd
+type MetricStorageMockBulkAddResults struct {
+	err error
+}
+
+// Expect sets up expected params for MetricStorage.BulkAdd
+func (mmBulkAdd *mMetricStorageMockBulkAdd) Expect(ctx context.Context, m []metrics.Metrics) *mMetricStorageMockBulkAdd {
+	if mmBulkAdd.mock.funcBulkAdd != nil {
+		mmBulkAdd.mock.t.Fatalf("MetricStorageMock.BulkAdd mock is already set by Set")
+	}
+
+	if mmBulkAdd.defaultExpectation == nil {
+		mmBulkAdd.defaultExpectation = &MetricStorageMockBulkAddExpectation{}
+	}
+
+	mmBulkAdd.defaultExpectation.params = &MetricStorageMockBulkAddParams{ctx, m}
+	for _, e := range mmBulkAdd.expectations {
+		if minimock.Equal(e.params, mmBulkAdd.defaultExpectation.params) {
+			mmBulkAdd.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmBulkAdd.defaultExpectation.params)
+		}
+	}
+
+	return mmBulkAdd
+}
+
+// Inspect accepts an inspector function that has same arguments as the MetricStorage.BulkAdd
+func (mmBulkAdd *mMetricStorageMockBulkAdd) Inspect(f func(ctx context.Context, m []metrics.Metrics)) *mMetricStorageMockBulkAdd {
+	if mmBulkAdd.mock.inspectFuncBulkAdd != nil {
+		mmBulkAdd.mock.t.Fatalf("Inspect function is already set for MetricStorageMock.BulkAdd")
+	}
+
+	mmBulkAdd.mock.inspectFuncBulkAdd = f
+
+	return mmBulkAdd
+}
+
+// Return sets up results that will be returned by MetricStorage.BulkAdd
+func (mmBulkAdd *mMetricStorageMockBulkAdd) Return(err error) *MetricStorageMock {
+	if mmBulkAdd.mock.funcBulkAdd != nil {
+		mmBulkAdd.mock.t.Fatalf("MetricStorageMock.BulkAdd mock is already set by Set")
+	}
+
+	if mmBulkAdd.defaultExpectation == nil {
+		mmBulkAdd.defaultExpectation = &MetricStorageMockBulkAddExpectation{mock: mmBulkAdd.mock}
+	}
+	mmBulkAdd.defaultExpectation.results = &MetricStorageMockBulkAddResults{err}
+	return mmBulkAdd.mock
+}
+
+// Set uses given function f to mock the MetricStorage.BulkAdd method
+func (mmBulkAdd *mMetricStorageMockBulkAdd) Set(f func(ctx context.Context, m []metrics.Metrics) (err error)) *MetricStorageMock {
+	if mmBulkAdd.defaultExpectation != nil {
+		mmBulkAdd.mock.t.Fatalf("Default expectation is already set for the MetricStorage.BulkAdd method")
+	}
+
+	if len(mmBulkAdd.expectations) > 0 {
+		mmBulkAdd.mock.t.Fatalf("Some expectations are already set for the MetricStorage.BulkAdd method")
+	}
+
+	mmBulkAdd.mock.funcBulkAdd = f
+	return mmBulkAdd.mock
+}
+
+// When sets expectation for the MetricStorage.BulkAdd which will trigger the result defined by the following
+// Then helper
+func (mmBulkAdd *mMetricStorageMockBulkAdd) When(ctx context.Context, m []metrics.Metrics) *MetricStorageMockBulkAddExpectation {
+	if mmBulkAdd.mock.funcBulkAdd != nil {
+		mmBulkAdd.mock.t.Fatalf("MetricStorageMock.BulkAdd mock is already set by Set")
+	}
+
+	expectation := &MetricStorageMockBulkAddExpectation{
+		mock:   mmBulkAdd.mock,
+		params: &MetricStorageMockBulkAddParams{ctx, m},
+	}
+	mmBulkAdd.expectations = append(mmBulkAdd.expectations, expectation)
+	return expectation
+}
+
+// Then sets up MetricStorage.BulkAdd return parameters for the expectation previously defined by the When method
+func (e *MetricStorageMockBulkAddExpectation) Then(err error) *MetricStorageMock {
+	e.results = &MetricStorageMockBulkAddResults{err}
+	return e.mock
+}
+
+// BulkAdd implements repositories.MetricStorage
+func (mmBulkAdd *MetricStorageMock) BulkAdd(ctx context.Context, m []metrics.Metrics) (err error) {
+	mm_atomic.AddUint64(&mmBulkAdd.beforeBulkAddCounter, 1)
+	defer mm_atomic.AddUint64(&mmBulkAdd.afterBulkAddCounter, 1)
+
+	if mmBulkAdd.inspectFuncBulkAdd != nil {
+		mmBulkAdd.inspectFuncBulkAdd(ctx, m)
+	}
+
+	mm_params := MetricStorageMockBulkAddParams{ctx, m}
+
+	// Record call args
+	mmBulkAdd.BulkAddMock.mutex.Lock()
+	mmBulkAdd.BulkAddMock.callArgs = append(mmBulkAdd.BulkAddMock.callArgs, &mm_params)
+	mmBulkAdd.BulkAddMock.mutex.Unlock()
+
+	for _, e := range mmBulkAdd.BulkAddMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmBulkAdd.BulkAddMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmBulkAdd.BulkAddMock.defaultExpectation.Counter, 1)
+		mm_want := mmBulkAdd.BulkAddMock.defaultExpectation.params
+		mm_got := MetricStorageMockBulkAddParams{ctx, m}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmBulkAdd.t.Errorf("MetricStorageMock.BulkAdd got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmBulkAdd.BulkAddMock.defaultExpectation.results
+		if mm_results == nil {
+			mmBulkAdd.t.Fatal("No results are set for the MetricStorageMock.BulkAdd")
+		}
+		return (*mm_results).err
+	}
+	if mmBulkAdd.funcBulkAdd != nil {
+		return mmBulkAdd.funcBulkAdd(ctx, m)
+	}
+	mmBulkAdd.t.Fatalf("Unexpected call to MetricStorageMock.BulkAdd. %v %v", ctx, m)
+	return
+}
+
+// BulkAddAfterCounter returns a count of finished MetricStorageMock.BulkAdd invocations
+func (mmBulkAdd *MetricStorageMock) BulkAddAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmBulkAdd.afterBulkAddCounter)
+}
+
+// BulkAddBeforeCounter returns a count of MetricStorageMock.BulkAdd invocations
+func (mmBulkAdd *MetricStorageMock) BulkAddBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmBulkAdd.beforeBulkAddCounter)
+}
+
+// Calls returns a list of arguments used in each call to MetricStorageMock.BulkAdd.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmBulkAdd *mMetricStorageMockBulkAdd) Calls() []*MetricStorageMockBulkAddParams {
+	mmBulkAdd.mutex.RLock()
+
+	argCopy := make([]*MetricStorageMockBulkAddParams, len(mmBulkAdd.callArgs))
+	copy(argCopy, mmBulkAdd.callArgs)
+
+	mmBulkAdd.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockBulkAddDone returns true if the count of the BulkAdd invocations corresponds
+// the number of defined expectations
+func (m *MetricStorageMock) MinimockBulkAddDone() bool {
+	for _, e := range m.BulkAddMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.BulkAddMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterBulkAddCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcBulkAdd != nil && mm_atomic.LoadUint64(&m.afterBulkAddCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockBulkAddInspect logs each unmet expectation
+func (m *MetricStorageMock) MinimockBulkAddInspect() {
+	for _, e := range m.BulkAddMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to MetricStorageMock.BulkAdd with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.BulkAddMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterBulkAddCounter) < 1 {
+		if m.BulkAddMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to MetricStorageMock.BulkAdd")
+		} else {
+			m.t.Errorf("Expected call to MetricStorageMock.BulkAdd with params: %#v", *m.BulkAddMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcBulkAdd != nil && mm_atomic.LoadUint64(&m.afterBulkAddCounter) < 1 {
+		m.t.Error("Expected call to MetricStorageMock.BulkAdd")
 	}
 }
 
@@ -423,11 +647,10 @@ func (mmGet *MetricStorageMock) Get(ctx context.Context, m *metrics.Metrics) (er
 		}
 
 		mm_results := mmGet.GetMock.defaultExpectation.results
-		if mm_results != nil {
-			return (*mm_results).err
+		if mm_results == nil {
+			mmGet.t.Fatal("No results are set for the MetricStorageMock.Get")
 		}
-		mmGet.t.Fatal("No results are set for the MetricStorageMock.Get")
-
+		return (*mm_results).err
 	}
 	if mmGet.funcGet != nil {
 		return mmGet.funcGet(ctx, m)
@@ -640,12 +863,10 @@ func (mmList *MetricStorageMock) List(ctx context.Context) (ma1 []metrics.Metric
 		}
 
 		mm_results := mmList.ListMock.defaultExpectation.results
-		if mm_results != nil {
-			return (*mm_results).ma1, (*mm_results).err
-
+		if mm_results == nil {
+			mmList.t.Fatal("No results are set for the MetricStorageMock.List")
 		}
-		mmList.t.Fatal("No results are set for the MetricStorageMock.List")
-
+		return (*mm_results).ma1, (*mm_results).err
 	}
 	if mmList.funcList != nil {
 		return mmList.funcList(ctx)
@@ -857,11 +1078,10 @@ func (mmPing *MetricStorageMock) Ping(ctx context.Context) (b1 bool) {
 		}
 
 		mm_results := mmPing.PingMock.defaultExpectation.results
-		if mm_results != nil {
-			return (*mm_results).b1
+		if mm_results == nil {
+			mmPing.t.Fatal("No results are set for the MetricStorageMock.Ping")
 		}
-		mmPing.t.Fatal("No results are set for the MetricStorageMock.Ping")
-
+		return (*mm_results).b1
 	}
 	if mmPing.funcPing != nil {
 		return mmPing.funcPing(ctx)
@@ -941,6 +1161,8 @@ func (m *MetricStorageMock) MinimockFinish() {
 		if !m.minimockDone() {
 			m.MinimockAddInspect()
 
+			m.MinimockBulkAddInspect()
+
 			m.MinimockGetInspect()
 
 			m.MinimockListInspect()
@@ -971,6 +1193,7 @@ func (m *MetricStorageMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAddDone() &&
+		m.MinimockBulkAddDone() &&
 		m.MinimockGetDone() &&
 		m.MinimockListDone() &&
 		m.MinimockPingDone()

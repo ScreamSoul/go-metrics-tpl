@@ -77,3 +77,12 @@ func (db *MemStorage) List(ctx context.Context) ([]metrics.Metrics, error) {
 func (db *MemStorage) Ping(ctx context.Context) bool {
 	return true
 }
+
+func (db *MemStorage) BulkAdd(ctx context.Context, metricList []metrics.Metrics) error {
+	for _, metric := range metricList {
+		if err := db.Add(ctx, metric); err != nil {
+			return err
+		}
+	}
+	return nil
+}
