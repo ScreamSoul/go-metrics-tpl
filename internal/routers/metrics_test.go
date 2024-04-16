@@ -130,17 +130,34 @@ func (s *MetricRouterSuite) TestUpdateRouter() {
 }
 
 func (s *MetricRouterSuite) TestUpdateBulkRouter() {
-	s.mockDB.BulkAddMock.Set(
-		func(ctx context.Context, m []metrics.Metrics) error {
-			return nil
-		},
-	)
+
+	mockBulkOk := func() {
+		s.mockDB.BulkAddMock.Set(
+			func(ctx context.Context, m []metrics.Metrics) error {
+				return nil
+			},
+		)
+	}
+
+	mockBulkErr := func() {
+		s.mockDB.BulkAddMock.Set(
+			func(ctx context.Context, m []metrics.Metrics) error {
+				return fmt.Errorf("some err")
+			},
+		)
+	}
+
+	bodyMore100Rows := make([]map[string]interface{}, 150)
+	for i := range bodyMore100Rows {
+		bodyMore100Rows[i] = map[string]interface{}{"type": "counter", "delta": 1, "id": "someMetric1"}
+	}
 
 	var testTable = []struct {
 		name   string
 		body   interface{}
 		method string
 		status int
+		mock   func()
 	}{
 		{
 			name: "update batch",
@@ -151,10 +168,54 @@ func (s *MetricRouterSuite) TestUpdateBulkRouter() {
 			},
 			method: "POST",
 			status: http.StatusOK,
+			mock:   mockBulkOk,
+		},
+		{
+			name:   "update batch",
+			body:   map[string]interface{}{"type": "counter", "delta": 1, "id": "someMetric1"},
+			method: "POST",
+			status: http.StatusBadRequest,
+			mock:   mockBulkOk,
+		},
+		{
+			name: "update batch",
+			body: []map[string]interface{}{
+				{"type": "asd", "delta": 1, "id": "someMetric1"},
+			},
+			method: "POST",
+			status: http.StatusBadRequest,
+			mock:   mockBulkOk,
+		},
+		{
+			name: "update batch",
+			body: []map[string]interface{}{
+				{"type": "counter", "value": 1.2, "id": "someMetric1"},
+			},
+			method: "POST",
+			status: http.StatusBadRequest,
+			mock:   mockBulkOk,
+		},
+		{
+			name: "update batch",
+			body: []map[string]interface{}{
+				{"type": "counter", "delta": 1, "id": "someMetric1"},
+			},
+			method: "POST",
+			status: http.StatusInternalServerError,
+			mock:   mockBulkErr,
+		},
+
+		{
+			name:   "update batch",
+			body:   bodyMore100Rows,
+			method: "POST",
+			status: http.StatusInternalServerError,
+			mock:   mockBulkErr,
 		},
 	}
 	for _, v := range testTable {
 		s.Suite.Run(v.name, func() {
+			v.mock()
 			resp := s.serverRequest(v.method, "/updates/", v.body, http.Header{"Content-Type": {"application/json"}})
 			s.Equal(
 				v.status,
@@ -206,7 +267,7 @@ func (s *MetricRouterSuite) TestUpdateFromPath() {
 	}
 }
 
-func (s *MetricRouterSuite) TestValueRouter() {
+func (s *MetricRouterSuite) TestGetMetricJSON() {
 
 	s.mockDB.GetMock.Set(func(ctx context.Context, m *metrics.Metrics) (err error) {
 		var intValue int64 = 1
@@ -262,7 +323,59 @@ func (s *MetricRouterSuite) TestValueRouter() {
 
 }
 
-func (s *MetricRouterSuite) TestListRouter() {
+func (s *MetricRouterSuite) TestGetMetric() {
+
+	s.mockDB.GetMock.Set(func(ctx context.Context, m *metrics.Metrics) (err error) {
+		var intValue int64 = 1
+		if m.MType == metrics.Counter && m.ID == "someMetric1" {
+			m.Delta = &intValue
+		} else {
+			return errors.New("not found")
+		}
+
+		return nil
+	})
+
+	var testTable = []struct {
+		name           string
+		body           map[string]interface{}
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name:           "fail type",
+			body:           map[string]interface{}{"type": "fake_type", "id": "someMetric1"},
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "",
+		},
+		{
+			name:           "value ok",
+			body:           map[string]interface{}{"type": "counter", "id": "someMetric1"},
+			expectedStatus: http.StatusOK,
+			expectedBody:   "1",
+		},
+		{
+			name:           "value not found",
+			body:           map[string]interface{}{"type": "counter", "id": "someMetric2"},
+			expectedStatus: http.StatusNotFound,
+			expectedBody:   "",
+		},
+	}
+	for _, v := range testTable {
+		s.Suite.Run(v.name, func() {
+			path := fmt.Sprintf("/value/%s/%s", v.body["type"], v.body["id"])
+			resp := s.serverRequest("GET", path, nil)
+			s.Require().Equal(v.expectedStatus, resp.StatusCode(), fmt.Sprintf("Resp body: %s", string(resp.Body())))
+			if v.expectedBody != "" {
+				s.Equal(v.expectedBody, string(resp.Body()))
+			}
+		})
+
+	}
+
+}
+
+func (s *MetricRouterSuite) TestListMetrics() {
 
 	var intValue int64 = 1
 	var floatValue = 1.1
@@ -272,20 +385,32 @@ func (s *MetricRouterSuite) TestListRouter() {
 		{ID: "MetricCounter1", Delta: &intValue, MType: metrics.Counter},
 	}
 
-	s.mockDB.ListMock.Return(
-		mockMetricList, nil,
-	)
+	mockWithDataList := func() {
+		s.mockDB.ListMock.Return(
+			mockMetricList, nil,
+		)
+	}
+
+	mockWithErr := func() {
+		var mockMetricList []metrics.Metrics
+		s.mockDB.ListMock.Return(
+			mockMetricList, fmt.Errorf("some err"),
+		)
+	}
 
 	var testTable = []struct {
 		name   string
 		method string
 		status int
 		result []metrics.Metrics
+		mock   func()
 	}{
-		{"list json ok", "GET", http.StatusOK, mockMetricList},
+		{"list json ok", "GET", http.StatusOK, mockMetricList, mockWithDataList},
+		{"list json err", "GET", http.StatusInternalServerError, mockMetricList, mockWithErr},
 	}
 	for _, v := range testTable {
 		s.Suite.Run(v.name, func() {
+			v.mock()
 			resp := s.serverRequest(v.method, "/", nil)
 			s.Require().Equal(v.status, resp.StatusCode())
 			if v.status == http.StatusOK {
@@ -300,7 +425,7 @@ func (s *MetricRouterSuite) TestListRouter() {
 
 }
 
-func (s *MetricRouterSuite) TestPingRouter() {
+func (s *MetricRouterSuite) TestPingStorage() {
 
 	var testTable = []struct {
 		name   string
