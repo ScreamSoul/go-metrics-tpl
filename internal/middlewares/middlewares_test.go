@@ -18,7 +18,8 @@ func TestGzipDecompressMiddleware(t *testing.T) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		w.Write(body)
+		_, err = w.Write(body)
+		assert.NoError(t, err)
 	}))
 
 	tests := []struct {
@@ -33,7 +34,8 @@ func TestGzipDecompressMiddleware(t *testing.T) {
 			expectedResponseBody: "Hello, World!",
 			encodingFunc: func(body *bytes.Buffer, data string) {
 				gw := gzip.NewWriter(body)
-				gw.Write([]byte(data))
+				_, err := gw.Write([]byte(data))
+				assert.NoError(t, err)
 				gw.Close()
 			},
 		},
@@ -42,7 +44,8 @@ func TestGzipDecompressMiddleware(t *testing.T) {
 			contentEncoding:      "",
 			expectedResponseBody: "Hello, World!",
 			encodingFunc: func(body *bytes.Buffer, data string) {
-				body.Write([]byte(data))
+				_, err := body.Write([]byte(data))
+				assert.NoError(t, err)
 			},
 		},
 	}
@@ -74,7 +77,8 @@ func TestGzipDecompressMiddleware(t *testing.T) {
 
 func TestGzipCompressMiddleware(t *testing.T) {
 	middleware := GzipCompressMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello, World!"))
+		_, err := w.Write([]byte("Hello, World!"))
+		assert.NoError(t, err)
 	}))
 
 	tests := []struct {

@@ -15,7 +15,8 @@ type LoggingSuite struct {
 
 func (s *LoggingSuite) SetupTest() {
 	// Reset the logger to the default NOP logger before each test
-	Initialize("info")
+	err := Initialize("info")
+	s.Require().NoError(err)
 	s.logger = GetLogger()
 }
 
