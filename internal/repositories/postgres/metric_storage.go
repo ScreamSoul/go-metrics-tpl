@@ -4,24 +4,27 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/screamsoul/go-metrics-tpl/internal/models/metrics"
+	"github.com/screamsoul/go-metrics-tpl/pkg/backoff"
 	"github.com/screamsoul/go-metrics-tpl/pkg/logging"
 	"go.uber.org/zap"
 )
 
 type PostgresStorage struct {
-	db      *sqlx.DB
-	logging *zap.Logger
+	db               *sqlx.DB
+	logging          *zap.Logger
+	backoffInteraval []time.Duration
 }
 
-func NewPostgresStorage(dataSourceName string) *PostgresStorage {
+func NewPostgresStorage(dataSourceName string, backoffInteraval []time.Duration) *PostgresStorage {
 	db := sqlx.MustOpen("pgx", dataSourceName)
 
-	return &PostgresStorage{db, logging.GetLogger()}
+	return &PostgresStorage{db, logging.GetLogger(), backoffInteraval}
 }
 
 func (storage *PostgresStorage) Add(ctx context.Context, metric metrics.Metrics) error {
@@ -37,8 +40,20 @@ func (storage *PostgresStorage) Add(ctx context.Context, metric metrics.Metrics)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.ExecContext(ctx, metric.ID, metric.MType, metric.Delta, metric.Value)
-	return err
+	exec := func() error {
+		_, err = stmt.ExecContext(ctx, metric.ID, metric.MType, metric.Delta, metric.Value)
+		return err
+	}
+
+	if storage.backoffInteraval != nil {
+		err = backoff.RetryWithBackoff(storage.backoffInteraval, IsTemporaryConnectionError, exec)
+		if err != nil {
+			err = fmt.Errorf("failed retries db request, %w", err)
+		}
+		return err
+	}
+	return exec()
+
 }
 
 func (storage *PostgresStorage) Get(ctx context.Context, metric *metrics.Metrics) error {
@@ -47,12 +62,29 @@ func (storage *PostgresStorage) Get(ctx context.Context, metric *metrics.Metrics
 	var delta sql.NullInt64
 
 	row := storage.db.QueryRowContext(ctx, query, metric.ID, metric.MType)
+	var err error
 
-	err := row.Scan(&value, &delta)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return fmt.Errorf("metric with Name %s not found", metric.ID)
+	exec := func() error {
+		err := row.Scan(&value, &delta)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return fmt.Errorf("metric with Name %s not found", metric.ID)
+			}
+			return err
 		}
+		return nil
+	}
+
+	if storage.backoffInteraval != nil {
+		err = backoff.RetryWithBackoff(storage.backoffInteraval, IsTemporaryConnectionError, exec)
+		if err != nil {
+			err = fmt.Errorf("failed retries db request, %w", err)
+		}
+	} else {
+		err = exec()
+	}
+
+	if err != nil {
 		return err
 	}
 
@@ -68,8 +100,19 @@ func (storage *PostgresStorage) Get(ctx context.Context, metric *metrics.Metrics
 
 func (storage *PostgresStorage) List(ctx context.Context) (metricsList []metrics.Metrics, err error) {
 	query := `SELECT name, m_type, delta, value FROM metrics`
+	exec := func() error {
+		return storage.db.SelectContext(ctx, &metricsList, query)
+	}
 
-	err = storage.db.SelectContext(ctx, &metricsList, query)
+	if storage.backoffInteraval != nil {
+		err = backoff.RetryWithBackoff(storage.backoffInteraval, IsTemporaryConnectionError, exec)
+		if err != nil {
+			err = fmt.Errorf("failed retries db request, %w", err)
+		}
+	} else {
+		err = exec()
+	}
+
 	return
 }
 
@@ -131,5 +174,16 @@ func (storage *PostgresStorage) BulkAdd(ctx context.Context, metricList []metric
 		}
 	}
 
+	exec := func() error {
+		return tx.Commit()
+	}
+
+	if storage.backoffInteraval != nil {
+		err = backoff.RetryWithBackoff(storage.backoffInteraval, IsTemporaryConnectionError, exec)
+		if err != nil {
+			err = fmt.Errorf("failed retries db request, %w", err)
+		}
+		return err
+	}
 	return tx.Commit()
 }

@@ -38,7 +38,7 @@ func main() {
 		memS := memory.NewMemStorage()
 		mStorage = memS
 	} else {
-		postgresS := postgres.NewPostgresStorage(cfg.DatabaseDSN)
+		postgresS := postgres.NewPostgresStorage(cfg.DatabaseDSN, cfg.BackoffIntervals)
 		defer postgresS.Close()
 
 		if err := postgresS.Bootstrap(ctx); err != nil {

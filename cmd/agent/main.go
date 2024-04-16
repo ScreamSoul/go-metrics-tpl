@@ -41,8 +41,6 @@ func main() {
 
 	metricClient := client.NewMetricsClient(cfg.CompressRequest)
 
-	backoffIntervals := []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
-
 	go func() {
 		for {
 			metricRepo.Update()
@@ -60,9 +58,14 @@ func main() {
 			sendMetric := func() error {
 				return metricClient.SendMetric(ctx, cfg.GetUpdateMetricURL(), metricsList)
 			}
-
-			if err := backoff.RetryWithBackoff(backoffIntervals, client.IsTemporaryNetworkError, sendMetric); err != nil {
-				logger.Error("all attempt send metric error", zap.Error(err))
+			if cfg.BackoffRetries {
+				if err := backoff.RetryWithBackoff(cfg.BackoffIntervals, client.IsTemporaryNetworkError, sendMetric); err != nil {
+					logger.Error("retry send metric error", zap.Error(err))
+				}
+			} else {
+				if err := sendMetric(); err != nil {
+					logger.Error("send metric error", zap.Error(err))
+				}
 			}
 
 			time.Sleep(reportInterval)
