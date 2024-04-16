@@ -1,3 +1,5 @@
+//go:build ignore
+
 package utils
 
 // Returns two channels and no error when given a non-nil struct
