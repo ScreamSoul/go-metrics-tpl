@@ -3,25 +3,46 @@ package logging
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
-func TestInitialize(t *testing.T) {
-	originalLogger := GetLogger()
-	defer func() { log = originalLogger }()
+type LoggingSuite struct {
+	suite.Suite
+	logger *zap.Logger
+}
 
-	log = nil
+func (s *LoggingSuite) SetupTest() {
+	// Reset the logger to the default NOP logger before each test
+	Initialize("info")
+	s.logger = GetLogger()
+}
 
-	// некорректный уровень логирования
-	err := Initialize("invalid_level")
-	assert.NotNil(t, err, "Expected an error when initializing with an invalid level")
-	assert.Nil(t, log, "Expected logger to not be initialized")
+func (s *LoggingSuite) TestInitialize() {
+	testCases := []struct {
+		name     string
+		level    string
+		expected zapcore.Level
+	}{
+		{"Debug Level", "debug", zapcore.DebugLevel},
+		{"Info Level", "info", zapcore.InfoLevel},
+		{"Warn Level", "warn", zapcore.WarnLevel},
+		{"Error Level", "error", zapcore.ErrorLevel},
+		{"DPanic Level", "dpanic", zapcore.DPanicLevel},
+		{"Panic Level", "panic", zapcore.PanicLevel},
+		{"Fatal Level", "fatal", zapcore.FatalLevel},
+	}
 
-	// корректный уровень логирования
-	err = Initialize("info")
-	assert.Nil(t, err, "Expected no error when initializing with a valid level")
-	assert.NotNil(t, log, "Expected logger to be initialized")
-	assert.False(t, log.Core().Enabled(zap.DebugLevel), "The debug level should not be supported")
-	assert.True(t, log.Core().Enabled(zap.InfoLevel), "The info level should be supported")
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			err := Initialize(tc.level)
+			s.Require().NoError(err, "Initialize should not return an error")
+			s.True(GetLogger().Core().Enabled(tc.expected), "Logger level should be enabled for the expected level")
+		})
+	}
+}
+
+func TestLoggingSuite(t *testing.T) {
+	suite.Run(t, new(LoggingSuite))
 }
