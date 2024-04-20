@@ -101,7 +101,7 @@ func (m *Metrics) UnmarshalJSON(data []byte) error {
 		Alias: (*Alias)(m),
 	}
 
-	if err := json.Unmarshal(data, &aux); err != nil {
+	if err := json.Unmarshal(data, aux); err != nil {
 		return err
 	}
 

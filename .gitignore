@@ -33,3 +33,4 @@ statictest*
 
 /docker_data
 *.json
+.env
