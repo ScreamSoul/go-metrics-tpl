@@ -26,4 +26,4 @@ build-agent:
 
 metrictest: buld-server build-agent
 	@echo "Start metrictest"
-	./metricstest -test.v -test.run=^TestIteration$(iter)$$ -binary-path=cmd/server/server -agent-binary-path=cmd/agent/agent -server-port=8080 -source-path=. -file-storage-path=./metrics-db.json -database-dsn="host=localhost user=db_user password=db_password dbname=db_metric sslmode=disable"
+	./metricstest -test.v -test.run=^TestIteration$(iter)$$ -binary-path=cmd/server/server -agent-binary-path=cmd/agent/agent -server-port=8080 -source-path=. -file-storage-path=./metrics-db.json -database-dsn="host=localhost user=db_user password=db_password dbname=db_metric sslmode=disable" -key=hello

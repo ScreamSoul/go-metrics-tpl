@@ -68,6 +68,7 @@ func main() {
 	var router = routers.NewMetricRouter(
 		metricServer,
 		middlewares.LoggingMiddleware,
+		middlewares.NewHashSumHeaderMiddleware(cfg.HashBodyKey),
 		middlewares.GzipDecompressMiddleware,
 		middlewares.GzipCompressMiddleware,
 	)

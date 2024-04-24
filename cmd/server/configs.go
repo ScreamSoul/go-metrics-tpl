@@ -19,6 +19,7 @@ type Config struct {
 	StoreInterval   int    `arg:"-i,env:STORE_INTERVAL" default:"300" help:"Интервал времени в секундах, по истечении которого текущие показания сервера сохраняются на диск"`
 	FileStoragePath string `arg:"-f,env:FILE_STORAGE_PATH" default:"/tmp/metrics-db.json" help:"Полное имя файла, куда сохраняются текущие значения"`
 	Restore         bool   `arg:"-r,env:RESTORE" default:"true" help:"Загружать или нет ранее сохранённые значения из указанного файла при старте сервера"`
+	HashBodyKey     string `arg:"-k,env:KEY" default:"" help:"hash key"`
 }
 
 func NewConfig() (*Config, error) {

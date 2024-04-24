@@ -148,3 +148,72 @@ func TestGzipCompressMiddleware(t *testing.T) {
 		})
 	}
 }
+
+func TestNewHashSumHeaderMiddleware(t *testing.T) {
+	// Define test cases
+	testCase := []struct {
+		name           string
+		hashKey        string
+		requestBody    string
+		headerHash     string
+		expectedStatus int
+	}{
+		{
+			name:           "Valid hash",
+			hashKey:        "testKey",
+			requestBody:    "testBody",
+			headerHash:     "33899393cccd71ea35f6340d8a70b2e1910d4de0f2c1c5c0befea38b27aecfca", // SHA256("testBodytestKey")
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "Invalid hash",
+			hashKey:        "testKey",
+			requestBody:    "testBody",
+			headerHash:     "invalidHash",
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "Missing hash key",
+			hashKey:        "",
+			requestBody:    "testBody",
+			headerHash:     "",
+			expectedStatus: http.StatusOK, // Assuming the middleware allows the request to proceed if the hash key is missing.
+		},
+		{
+			name:           "Missing header hash",
+			hashKey:        "testKey",
+			requestBody:    "testBody",
+			headerHash:     "",
+			expectedStatus: http.StatusOK, // Assuming the middleware allows the request to proceed if the header hash is missing.
+		},
+	}
+
+	// Run each test case
+	for _, tc := range testCase {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a request with the test case's body and header
+			req, err := http.NewRequest("GET", "/", bytes.NewBufferString(tc.requestBody))
+			if err != nil {
+				t.Fatalf("Failed to create request: %v", err)
+			}
+			req.Header.Set("HashSHA256", tc.headerHash)
+
+			// Create a ResponseRecorder to record the response
+			rr := httptest.NewRecorder()
+
+			// Create the middleware with the test case's hash key
+			middleware := NewHashSumHeaderMiddleware(tc.hashKey)
+
+			// Wrap the ResponseRecorder in the middleware
+			handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			}))
+
+			// Serve the request
+			handler.ServeHTTP(rr, req)
+
+			// Assert the expected status code
+			assert.Equal(t, tc.expectedStatus, rr.Code)
+		})
+	}
+}

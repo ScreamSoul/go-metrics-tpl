@@ -13,6 +13,7 @@ type Server struct {
 	CompressRequest  bool            `arg:"-z,env:COMPRESS_REQUEST" default:"true" help:"compress body request"`
 	BackoffIntervals []time.Duration `arg:"--b-intervals,env:BACKOFF_INTERVALS" help:"Интервалы повтора запроса (default=1s,3s,5s)"`
 	BackoffRetries   bool            `arg:"--backoff,env:BACKOFF_RETRIES" default:"true" help:"Повтор запроса при разрыве соединения"`
+	HashBodyKey      string          `arg:"-k,env:KEY" default:"" help:"hash key"`
 }
 
 type Config struct {

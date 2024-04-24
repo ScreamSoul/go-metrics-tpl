@@ -39,7 +39,7 @@ func main() {
 	pollInterval := time.Duration(cfg.PollInterval) * time.Second
 	reportInterval := time.Duration(cfg.ReportInterval) * time.Second
 
-	metricClient := client.NewMetricsClient(cfg.CompressRequest)
+	metricClient := client.NewMetricsClient(cfg.CompressRequest, cfg.HashBodyKey)
 
 	go func() {
 		for {
