@@ -18,6 +18,7 @@ type Server struct {
 
 type Config struct {
 	Server
+	RateLimit      int    `arg:"-l,env:RATE_LIMIT" default:"1" help:"the number of simultaneous outgoing requests to the server"`
 	ReportInterval int    `arg:"-r,env:REPORT_INTERVAL" default:"10" help:"the frequency of sending metrics to the server"`
 	PollInterval   int    `arg:"-p,env:POLL_INTERVAL" default:"2" help:"the frequency of polling metrics from the runtime package"`
 	LogLevel       string `arg:"--ll,env:LOG_LEVEL" default:"INFO" help:"log level"`
@@ -41,6 +42,10 @@ func NewConfig() (*Config, error) {
 		cfg.Server.BackoffIntervals = []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
 	} else if !cfg.Server.BackoffRetries {
 		cfg.Server.BackoffIntervals = nil
+	}
+
+	if cfg.RateLimit <= 0 {
+		cfg.RateLimit = 1
 	}
 
 	return &cfg, nil

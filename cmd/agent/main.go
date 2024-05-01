@@ -10,7 +10,6 @@ import (
 
 	"github.com/screamsoul/go-metrics-tpl/internal/client"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories/memory"
-	"github.com/screamsoul/go-metrics-tpl/pkg/backoff"
 	"github.com/screamsoul/go-metrics-tpl/pkg/logging"
 	"go.uber.org/zap"
 )
@@ -39,38 +38,13 @@ func main() {
 	pollInterval := time.Duration(cfg.PollInterval) * time.Second
 	reportInterval := time.Duration(cfg.ReportInterval) * time.Second
 
-	metricClient := client.NewMetricsClient(cfg.CompressRequest, cfg.HashBodyKey)
+	metricClient := client.NewMetricsClient(cfg.CompressRequest, cfg.HashBodyKey, cfg.GetUpdateMetricURL())
 
-	go func() {
-		for {
-			metricRepo.Update()
-			time.Sleep(pollInterval)
-		}
-	}()
-
-	go func(ctx context.Context) {
-		for {
-			metricsList, err := metricRepo.List(ctx)
-			if err != nil {
-				panic(err)
-			}
-
-			sendMetric := func() error {
-				return metricClient.SendMetric(ctx, cfg.GetUpdateMetricURL(), metricsList)
-			}
-			if cfg.BackoffRetries {
-				if err := backoff.RetryWithBackoff(cfg.BackoffIntervals, client.IsTemporaryNetworkError, sendMetric); err != nil {
-					logger.Error("retry send metric error", zap.Error(err))
-				}
-			} else {
-				if err := sendMetric(); err != nil {
-					logger.Error("send metric error", zap.Error(err))
-				}
-			}
-
-			time.Sleep(reportInterval)
-		}
-	}(ctx)
+	go updater(ctx, metricRepo, pollInterval)
+	logger.Info("start senders", zap.Int("count_senders", cfg.RateLimit))
+	for i := 0; i < cfg.RateLimit; i++ {
+		go sender(ctx, metricRepo, cfg.BackoffIntervals, metricClient, reportInterval)
+	}
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)

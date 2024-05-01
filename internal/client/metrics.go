@@ -16,7 +16,8 @@ import (
 
 type MetricsClient struct {
 	resty.Client
-	logger *zap.Logger
+	logger    *zap.Logger
+	uploadURL string
 }
 
 func NewGzipCompressBodyMiddleware() func(c *resty.Client, r *resty.Request) error {
@@ -68,11 +69,12 @@ func NewHashSumHeaderMiddleware(hashKey string) func(c *resty.Client, r *resty.R
 	}
 }
 
-func NewMetricsClient(compressRequest bool, hashKey string) *MetricsClient {
+func NewMetricsClient(compressRequest bool, hashKey string, uploadURL string) *MetricsClient {
 
 	client := &MetricsClient{
 		*resty.New(),
 		logging.GetLogger(),
+		uploadURL,
 	}
 
 	if compressRequest {
@@ -86,7 +88,7 @@ func NewMetricsClient(compressRequest bool, hashKey string) *MetricsClient {
 	return client
 }
 
-func (client *MetricsClient) SendMetric(ctx context.Context, uploadURL string, metricsList []metrics.Metrics) error {
+func (client *MetricsClient) SendMetric(ctx context.Context, metricsList []metrics.Metrics) error {
 	jsonData, err := json.Marshal(metricsList)
 	if err != nil {
 		panic(err)
@@ -96,7 +98,7 @@ func (client *MetricsClient) SendMetric(ctx context.Context, uploadURL string, m
 		SetContext(ctx).
 		SetHeader("Content-Type", "application/json").
 		SetBody(jsonData).
-		Post(uploadURL)
+		Post(client.uploadURL)
 
 	if err != nil {
 		client.logger.Error("send error", zap.Error(err))
@@ -104,7 +106,7 @@ func (client *MetricsClient) SendMetric(ctx context.Context, uploadURL string, m
 	}
 
 	client.logger.Info(
-		"send metric", zap.Any("metric", resp.Request.Body), zap.String("url", uploadURL),
+		"send metric", zap.Any("metric", resp.Request.Body), zap.String("url", client.uploadURL),
 	)
 	return nil
 }
