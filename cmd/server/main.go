@@ -58,7 +58,7 @@ func main() {
 	)
 
 	if mStorageRestore.IsActiveRestore {
-		defer mStorageRestore.Save(context.Background())
+		defer mStorageRestore.Save(ctx)
 	}
 
 	var metricServer = handlers.NewMetricServer(
