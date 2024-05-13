@@ -1,8 +1,12 @@
 package memory
 
 import (
+	"fmt"
 	"runtime"
 	"time"
+
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
 type CollectionMetricStorage struct {
@@ -16,6 +20,14 @@ func NewCollectionMetricStorage() *CollectionMetricStorage {
 }
 
 func (collection *CollectionMetricStorage) Update() {
+	collection.Lock()
+	defer collection.Unlock()
+
+	collection.gauge["RandomValue"] = float64(time.Now().UnixNano()) / float64(time.Second)
+	collection.counter["PollCount"]++
+}
+
+func (collection *CollectionMetricStorage) UpdateRuntime() {
 	collection.Lock()
 	defer collection.Unlock()
 
@@ -48,7 +60,25 @@ func (collection *CollectionMetricStorage) Update() {
 	collection.gauge["StackSys"] = float64(mem.StackSys)
 	collection.gauge["Sys"] = float64(mem.Sys)
 	collection.gauge["TotalAlloc"] = float64(mem.TotalAlloc)
+}
 
-	collection.gauge["RandomValue"] = float64(time.Now().UnixNano()) / float64(time.Second)
-	collection.counter["PollCount"]++
+func (collection *CollectionMetricStorage) UpdateGopsutil() {
+	collection.Lock()
+	defer collection.Unlock()
+
+	memory, err := mem.VirtualMemory()
+	if err != nil {
+		return
+	}
+
+	collection.gauge["TotalMemory"] = float64(memory.Total)
+	collection.gauge["FreeMemory"] = float64(memory.Free)
+
+	cpuPercents, err := cpu.Percent(0, false)
+	if err != nil {
+		return
+	}
+	for i, percent := range cpuPercents {
+		collection.gauge[fmt.Sprintf("CPUutilization%d", i+1)] = percent
+	}
 }

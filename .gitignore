@@ -28,3 +28,10 @@ vendor/
 __debug_*
 metricstest*
 statictest*
+
+*.html
+
+.DS_Store
+/docker_data
+*.json
+.env

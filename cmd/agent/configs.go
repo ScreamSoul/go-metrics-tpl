@@ -1,38 +1,52 @@
 package main
 
 import (
-	"flag"
 	"fmt"
+	"strings"
+	"time"
 
-	"github.com/caarlos0/env"
+	"github.com/alexflint/go-arg"
 )
 
+type Server struct {
+	ListenServerHost string          `arg:"-a,env:ADDRESS" default:"localhost:8080" help:"Адрес и порт сервера"`
+	CompressRequest  bool            `arg:"-z,env:COMPRESS_REQUEST" default:"true" help:"compress body request"`
+	BackoffIntervals []time.Duration `arg:"--b-intervals,env:BACKOFF_INTERVALS" help:"Интервалы повтора запроса (default=1s,3s,5s)"`
+	BackoffRetries   bool            `arg:"--backoff,env:BACKOFF_RETRIES" default:"true" help:"Повтор запроса при разрыве соединения"`
+	HashBodyKey      string          `arg:"-k,env:KEY" default:"" help:"hash key"`
+}
+
 type Config struct {
-	ListenServerHost string `env:"ADDRESS"`
-	ReportInterval   int    `env:"REPORT_INTERVAL"`
-	PollInterval     int    `env:"POLL_INTERVAL"`
+	Server
+	RateLimit      int    `arg:"-l,env:RATE_LIMIT" default:"1" help:"the number of simultaneous outgoing requests to the server"`
+	ReportInterval int    `arg:"-r,env:REPORT_INTERVAL" default:"10" help:"the frequency of sending metrics to the server"`
+	PollInterval   int    `arg:"-p,env:POLL_INTERVAL" default:"2" help:"the frequency of polling metrics from the runtime package"`
+	LogLevel       string `arg:"--ll,env:LOG_LEVEL" default:"INFO" help:"log level"`
 }
 
 func (c *Config) GetServerURL() string {
-	return fmt.Sprintf("http://%s", c.ListenServerHost)
+	return strings.TrimRight(fmt.Sprintf("http://%s", c.Server.ListenServerHost), "/")
 
 }
 
-func (c *Config) GetUpdateMetricURL(mType, mName, mValue string) string {
-	return fmt.Sprintf("%s/update/%s/%s/%s", c.GetServerURL(), mType, mName, mValue)
+func (c *Config) GetUpdateMetricURL() string {
+	return fmt.Sprintf("%s/updates/", c.GetServerURL())
 }
 
 func NewConfig() (*Config, error) {
 	var cfg Config
 
-	flag.StringVar(&cfg.ListenServerHost, "a", "localhost:8080", "address and port to run server")
-	flag.IntVar(&cfg.ReportInterval, "r", 10, "the frequency of sending metrics to the server")
-	flag.IntVar(&cfg.PollInterval, "p", 2, "the frequency of polling metrics from the runtime package")
+	arg.MustParse(&cfg)
 
-	flag.Parse()
-
-	if err := env.Parse(&cfg); err != nil {
-		return nil, err
+	if cfg.Server.BackoffIntervals == nil && cfg.Server.BackoffRetries {
+		cfg.Server.BackoffIntervals = []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
+	} else if !cfg.Server.BackoffRetries {
+		cfg.Server.BackoffIntervals = nil
 	}
+
+	if cfg.RateLimit <= 0 {
+		cfg.RateLimit = 1
+	}
+
 	return &cfg, nil
 }
