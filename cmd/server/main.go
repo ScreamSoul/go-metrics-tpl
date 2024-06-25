@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	_ "net/http/pprof"
+
 	"github.com/screamsoul/go-metrics-tpl/internal/handlers"
 	"github.com/screamsoul/go-metrics-tpl/internal/middlewares"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories"
@@ -72,6 +74,12 @@ func main() {
 		middlewares.GzipDecompressMiddleware,
 		middlewares.GzipCompressMiddleware,
 	)
+	if cfg.Debug {
+		router.Mount("/debug", http.DefaultServeMux)
+
+		logger.Info("mount debug pprof")
+
+	}
 
 	logger.Info("starting server", zap.String("ListenAddress", cfg.ListenAddress))
 

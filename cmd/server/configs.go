@@ -20,6 +20,7 @@ type Config struct {
 	FileStoragePath string `arg:"-f,env:FILE_STORAGE_PATH" default:"/tmp/metrics-db.json" help:"Полное имя файла, куда сохраняются текущие значения"`
 	Restore         bool   `arg:"-r,env:RESTORE" default:"true" help:"Загружать или нет ранее сохранённые значения из указанного файла при старте сервера"`
 	HashBodyKey     string `arg:"-k,env:KEY" default:"" help:"hash key"`
+	Debug           bool   `arg:"--debug,env:DEBUG" default:"false" help:"debug mode"`
 }
 
 func NewConfig() (*Config, error) {

@@ -1,29 +1,30 @@
 FORCE:
 
-DOCKER_COMPOSE_DB=docker-compose.yml
+DOCKER_COMPOSE=docker-compose.yml
+DOCKER_COMPOSE_TESTS=docker-compose.tests.yml
 
+tests-build:
+	docker-compose -f ${DOCKER_COMPOSE_TESTS} build --force-rm
 
-up-db:
-	docker-compose -f ${DOCKER_COMPOSE_DB} up  -d
+tests-up:
+	docker-compose -f ${DOCKER_COMPOSE_TESTS} up --remove-orphans
+	docker-compose -f ${DOCKER_COMPOSE_TESTS} down
 
-down-db:
-	docker-compose -f ${DOCKER_COMPOSE_DB} down 
+tests-down:
+	docker-compose -f ${DOCKER_COMPOSE_TESTS} down
 
-logs-db:
-	docker-compose -f ${DOCKER_COMPOSE_DB} logs 
+build:
+	docker-compose -f ${DOCKER_COMPOSE} build --force-rm
 
-statictest: FORCE
-	golangci-lint run
-	go vet -vettool=./statictest ./...
+up:
+	docker-compose -f ${DOCKER_COMPOSE} up  -d
 
-buld-server:
-	@echo "Build server"
-	@cd cmd/server && go build -buildvcs=false -o server
+down:
+	docker-compose -f ${DOCKER_COMPOSE} down 
 
-build-agent:
-	@echo "Build agent"
-	@cd cmd/agent && go build -buildvcs=false -o agent
+logs:
+	docker-compose -f ${DOCKER_COMPOSE} logs 
 
-metrictest: buld-server build-agent
-	@echo "Start metrictest"
-	./metricstest -test.v -test.run=^TestIteration$(iter)$$ -binary-path=cmd/server/server -agent-binary-path=cmd/agent/agent -server-port=8080 -source-path=. -file-storage-path=./metrics-db.json -database-dsn="host=localhost user=db_user password=db_password dbname=db_metric sslmode=disable" -key=hello
+coverage:
+	go test -race -coverprofile=coverage.out -covermode=atomic ./...
+	go tool cover -html=coverage.out -o coverage.html

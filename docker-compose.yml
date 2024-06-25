@@ -1,7 +1,53 @@
 version: "3"
 services:
+  server:
+    container_name: metric-server
+    build: 
+      dockerfile: build/docker/metrics/Dockerfile
+      context: .
+      target: server-app
+    ports:
+      - "8080:8080"
+    expose:
+      - 8080
+    depends_on:
+       postgres-db:
+         condition: service_healthy
+    environment:
+      - RUN_ADDRESS=0.0.0.0:8080
+      - DATABASE_DSN=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-db/${POSTGRES_DB}?sslmode=disable
+      - ADDRESS=0.0.0.0:8080
+      - STORE_INTERVAL=300
+      - FILE_STORAGE_PATH=/tmp/metrics_data/metrics-db.json
+      - RESTORE=true
+      - KEY=${HASH_KEY:-secret}
+      - DEBUG=${DEBUG_SERVER:-false}
+    volumes:
+      - ${DATA_PATH}/metrics_data:/tmp/metrics_data
+
+  agent:
+    container_name: metric-agent
+    build: 
+      dockerfile: build/docker/metrics/Dockerfile
+      context: .
+      target: agent-app
+    
+    depends_on:
+       postgres-db:
+         condition: service_healthy
+       server:
+         condition: service_started
+    environment:
+      - RATE_LIMIT=1
+      - REPORT_INTERVAL=10
+      - POLL_INTERVAL=2
+      - ADDRESS=server:8080
+      - COMPRESS_REQUEST=true
+      - KEY=${HASH_KEY:-secret}
+
+
   postgres-db:
-    container_name: metric-postgres-db
+    container_name: metrics-postgres-db
     image: postgres:15.4-alpine3.18
     volumes:
       - ${DATA_PATH}/postgres:/var/lib/postgresql/data
@@ -20,6 +66,6 @@ services:
       retries: 3
     environment:
       - LC_ALL=C.UTF-8
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER:?Please configure POSTGRES_USER in the .env file}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Please configure POSTGRES_PASSWORD in the .env file}
+      - POSTGRES_DB=${POSTGRES_DB:?Please configure POSTGRES_DB in the .env file}

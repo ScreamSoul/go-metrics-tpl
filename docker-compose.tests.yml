@@ -1,0 +1,90 @@
+version: "3"
+
+
+services:
+  metricstest:
+    container_name: metricstest
+    platform: linux/amd64
+    build: 
+      dockerfile: build/docker/statictest/Dockerfile
+      context: .
+      target: metricstest
+    
+    command: 
+      - /metricstest
+      - -test.v
+      - -test.run=^TestIteration${TEST_ITER:?Please configure TEST_ITER in the .env file}$
+      - -binary-path=/app/cmd/server/server
+      - -agent-binary-path=/app/cmd/agent/agent
+      - -server-port=8080
+      - -source-path=.
+      - -file-storage-path=./metrics-db.json
+      - -database-dsn=postgresql://test-user:test-password@test-postgres-db/test-db?sslmode=disable
+      - -key=hello
+    volumes:
+      - ".:/app"
+      - "${DATA_PATH}/.go:/go"
+    environment:
+      - RUN_ADDRESS=127.0.0.1:8080
+      - DATABASE_URI=postgresql://test-user:test-password@test-postgres-db/test-db?sslmode=disable
+      - ACCRUAL_SYSTEM_ADDRESS=http://127.0.0.1:8001
+    depends_on:
+      test-postgres-db:
+        condition: service_healthy
+    
+  test-postgres-db:
+    image: postgres:15.4-alpine3.18
+    expose:
+      - 5432
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    environment:
+      - LC_ALL=C.UTF-8
+      - POSTGRES_USER=test-user
+      - POSTGRES_PASSWORD=test-password
+      - POSTGRES_DB=test-db
+
+  golangci:
+    container_name: golangci
+    platform: linux/amd64
+    build: 
+      dockerfile: build/docker/statictest/Dockerfile
+      context: .
+      target: golangci
+    command: golangci-lint run ./...
+    volumes:
+      - "${DATA_PATH}/.cache/golangci-lint/v1.59.0:/root/.cache"
+      - ".:/app"
+    
+  statictest:
+    container_name: statictest
+    platform: linux/amd64
+    build: 
+      dockerfile: build/docker/statictest/Dockerfile
+      context: .
+      target: statictest
+    command: go vet -vettool=/statictest ./...
+    volumes:
+      - "${DATA_PATH}/.cache/statictest_cache:/root/.cache"
+      - "${DATA_PATH}/.go:/go"
+      - ".:/app"
+  
+  tests:
+    container_name: tests
+    platform: linux/amd64
+    build: 
+      dockerfile: build/docker/statictest/Dockerfile
+      context: .
+      target: tests
+    command: go test ./...
+    volumes:
+      - "${DATA_PATH}/.cache/statictest_cache:/root/.cache"
+      - "${DATA_PATH}/.go:/go"
+      - ".:/app"
