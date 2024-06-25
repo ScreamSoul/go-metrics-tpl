@@ -1,9 +1,10 @@
-package handlers
+package handlers_test
 
 import (
 	"fmt"
 	"net/http"
 
+	"github.com/screamsoul/go-metrics-tpl/internal/handlers"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories/memory"
 )
 
@@ -35,7 +36,7 @@ func Example() {
 	mStorage := memory.NewMemStorage()
 
 	// Creating an instance of MetricServer
-	var metricServer = NewMetricServer(
+	var metricServer = handlers.NewMetricServer(
 		mStorage,
 	)
 
