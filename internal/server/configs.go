@@ -1,4 +1,5 @@
-package main
+// Main package with  metric server app configuration
+package server
 
 import (
 	"time"

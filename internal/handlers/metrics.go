@@ -21,6 +21,7 @@ func NewMetricServer(metricRepo repositories.MetricStorage) *MetricServer {
 	return &MetricServer{store: metricRepo, logger: logger}
 }
 
+// PingStorage checks the connection to the database.
 func (ms *MetricServer) PingStorage(w http.ResponseWriter, r *http.Request) {
 	if !ms.store.Ping(r.Context()) {
 		http.Error(w, "", http.StatusInternalServerError)
@@ -28,6 +29,7 @@ func (ms *MetricServer) PingStorage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// UpdateMetricBulk handler, updates metrics, can accept multiple metrics in json format at once.
 func (ms *MetricServer) UpdateMetricBulk(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
@@ -77,6 +79,7 @@ func (ms *MetricServer) UpdateMetricBulk(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// UpdateMetric handler, updates one metric.
 func (ms *MetricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 	var metricObj metrics.Metrics
 
@@ -111,6 +114,7 @@ func (ms *MetricServer) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetMetricValue handler, returns the metric value by type and name.
 func (ms *MetricServer) GetMetricValue(w http.ResponseWriter, r *http.Request) {
 
 	metricObj, err := metrics.NewMetric(
@@ -135,6 +139,7 @@ func (ms *MetricServer) GetMetricValue(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetMetricJSON handler, returns the metric value by type and name in the josn format.
 func (ms *MetricServer) GetMetricJSON(w http.ResponseWriter, r *http.Request) {
 
 	var metricObj metrics.Metrics
@@ -157,6 +162,7 @@ func (ms *MetricServer) GetMetricJSON(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ListMetrics handler, returns all current metrics
 func (ms *MetricServer) ListMetrics(w http.ResponseWriter, r *http.Request) {
 
 	metrics, err := ms.store.List(r.Context())
