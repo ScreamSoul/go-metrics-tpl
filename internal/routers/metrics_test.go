@@ -12,7 +12,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/gojuno/minimock/v3"
 	"github.com/screamsoul/go-metrics-tpl/internal/handlers"
-	"github.com/screamsoul/go-metrics-tpl/internal/mocks"
+	mocks "github.com/screamsoul/go-metrics-tpl/internal/mocks"
 	"github.com/screamsoul/go-metrics-tpl/internal/models/metrics"
 	"github.com/stretchr/testify/suite"
 )
