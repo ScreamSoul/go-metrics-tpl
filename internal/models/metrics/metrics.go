@@ -1,3 +1,4 @@
+// A module for defining a metric schema and auxiliary functions for interacting with it.
 package metrics
 
 import (
@@ -21,6 +22,7 @@ func (mt MetricType) IsValid() bool {
 
 }
 
+// Metrics a structure for storing information about metrics.
 type Metrics struct {
 	ID    string     `json:"id" db:"name"`                         // имя метрики
 	MType MetricType `json:"type" db:"m_type"`                     // параметр, принимающий значение gauge или counter
@@ -71,6 +73,7 @@ func (m *Metrics) GetValue() (val string) {
 	return
 }
 
+// ValidateType checks the validity of the metric type.
 func (m *Metrics) ValidateType() error {
 	if !m.MType.IsValid() {
 		return fmt.Errorf("metric type `%v` is not valid", m.MType)
@@ -78,6 +81,7 @@ func (m *Metrics) ValidateType() error {
 	return nil
 }
 
+// ValidateValue checks the value depending on the type of metric.
 func (m *Metrics) ValidateValue() error {
 	switch m.MType {
 	case Gauge:
@@ -92,6 +96,7 @@ func (m *Metrics) ValidateValue() error {
 	return nil
 }
 
+// UnmarshalJSON overriding the standard method to cast to the MetricType type.
 func (m *Metrics) UnmarshalJSON(data []byte) error {
 	type Alias Metrics
 	aux := &struct {

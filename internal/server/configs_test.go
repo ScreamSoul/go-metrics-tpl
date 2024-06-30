@@ -1,10 +1,11 @@
-package main
+package server_test
 
 import (
 	"os"
 	"testing"
 	"time"
 
+	"github.com/screamsoul/go-metrics-tpl/internal/server"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,7 +47,7 @@ func TestBackoffIntervalConfig(t *testing.T) {
 				t.Setenv(k, v)
 			}
 
-			cfg, err := NewConfig()
+			cfg, err := server.NewConfig()
 			assert.NoError(t, err)
 
 			assert.Equal(t, tt.expectedBackoffIntervals, cfg.Postgres.BackoffIntervals)

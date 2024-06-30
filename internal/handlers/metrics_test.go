@@ -1,4 +1,4 @@
-package routers
+package handlers_test
 
 import (
 	"context"
@@ -12,15 +12,15 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/gojuno/minimock/v3"
 	"github.com/screamsoul/go-metrics-tpl/internal/handlers"
-	"github.com/screamsoul/go-metrics-tpl/internal/mocks"
 	"github.com/screamsoul/go-metrics-tpl/internal/models/metrics"
+	"github.com/screamsoul/go-metrics-tpl/internal/routers"
 	"github.com/stretchr/testify/suite"
 )
 
 type MetricRouterSuite struct {
 	suite.Suite
 	server *httptest.Server
-	mockDB *mocks.MetricStorageMock
+	mockDB *MetricStorageMock
 }
 
 func TestMemStorageSuite(t *testing.T) {
@@ -59,9 +59,9 @@ func (s *MetricRouterSuite) serverRequest(
 func (s *MetricRouterSuite) SetupTest() {
 	mc := minimock.NewController(s.T())
 
-	s.mockDB = mocks.NewMetricStorageMock(mc)
+	s.mockDB = NewMetricStorageMock(mc)
 	s.server = httptest.NewServer(
-		NewMetricRouter(
+		routers.NewMetricRouter(
 			handlers.NewMetricServer(s.mockDB),
 		),
 	)

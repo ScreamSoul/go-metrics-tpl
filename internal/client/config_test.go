@@ -1,10 +1,11 @@
-package main
+package client_test
 
 import (
 	"os"
 	"testing"
 	"time"
 
+	"github.com/screamsoul/go-metrics-tpl/internal/client"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,14 +13,14 @@ func TestConfig(t *testing.T) {
 	// Define test cases
 	testCases := []struct {
 		name           string
-		config         Config
+		config         client.Config
 		expectedServer string
 		expectedUpdate string
 	}{
 		{
 			name: "Default Config",
-			config: Config{
-				Server: Server{
+			config: client.Config{
+				Server: client.Server{
 					ListenServerHost: "localhost:8080",
 					CompressRequest:  true,
 					BackoffIntervals: []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second},
@@ -82,7 +83,7 @@ func TestBackoffIntervalConfig(t *testing.T) {
 				t.Setenv(k, v)
 			}
 
-			cfg, err := NewConfig()
+			cfg, err := client.NewConfig()
 			assert.NoError(t, err)
 
 			assert.Equal(t, tt.expectedBackoffIntervals, cfg.Server.BackoffIntervals)

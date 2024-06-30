@@ -45,15 +45,11 @@ func (storage *PostgresStorage) Add(ctx context.Context, metric metrics.Metrics)
 		return err
 	}
 
-	if storage.backoffInteraval != nil {
-		err = backoff.RetryWithBackoff(storage.backoffInteraval, IsTemporaryConnectionError, exec)
-		if err != nil {
-			err = fmt.Errorf("failed retries db request, %w", err)
-		}
-		return err
+	err = backoff.RetryWithBackoff(storage.backoffInteraval, IsTemporaryConnectionError, exec)
+	if err != nil {
+		err = fmt.Errorf("failed retries db request, %w", err)
 	}
-	return exec()
-
+	return err
 }
 
 func (storage *PostgresStorage) Get(ctx context.Context, metric *metrics.Metrics) error {
@@ -75,13 +71,9 @@ func (storage *PostgresStorage) Get(ctx context.Context, metric *metrics.Metrics
 		return nil
 	}
 
-	if storage.backoffInteraval != nil {
-		err = backoff.RetryWithBackoff(storage.backoffInteraval, IsTemporaryConnectionError, exec)
-		if err != nil {
-			err = fmt.Errorf("failed retries db request, %w", err)
-		}
-	} else {
-		err = exec()
+	err = backoff.RetryWithBackoff(storage.backoffInteraval, IsTemporaryConnectionError, exec)
+	if err != nil {
+		err = fmt.Errorf("failed retries db request, %w", err)
 	}
 
 	if err != nil {
@@ -104,13 +96,9 @@ func (storage *PostgresStorage) List(ctx context.Context) (metricsList []metrics
 		return storage.db.SelectContext(ctx, &metricsList, query)
 	}
 
-	if storage.backoffInteraval != nil {
-		err = backoff.RetryWithBackoff(storage.backoffInteraval, IsTemporaryConnectionError, exec)
-		if err != nil {
-			err = fmt.Errorf("failed retries db request, %w", err)
-		}
-	} else {
-		err = exec()
+	err = backoff.RetryWithBackoff(storage.backoffInteraval, IsTemporaryConnectionError, exec)
+	if err != nil {
+		err = fmt.Errorf("failed retries db request, %w", err)
 	}
 
 	return
@@ -178,12 +166,9 @@ func (storage *PostgresStorage) BulkAdd(ctx context.Context, metricList []metric
 		return tx.Commit()
 	}
 
-	if storage.backoffInteraval != nil {
-		err = backoff.RetryWithBackoff(storage.backoffInteraval, IsTemporaryConnectionError, exec)
-		if err != nil {
-			err = fmt.Errorf("failed retries db request, %w", err)
-		}
-		return err
+	err = backoff.RetryWithBackoff(storage.backoffInteraval, IsTemporaryConnectionError, exec)
+	if err != nil {
+		err = fmt.Errorf("failed retries db request, %w", err)
 	}
-	return tx.Commit()
+	return err
 }
