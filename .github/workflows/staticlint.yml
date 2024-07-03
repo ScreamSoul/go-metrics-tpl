@@ -11,7 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     container: golang:1.22
     steps:
-
+      - name: Checkout code
+        uses: actions/checkout@v2
+        
       - name: Built staticlint binary
         run: |
           cd cmd/staticlint
