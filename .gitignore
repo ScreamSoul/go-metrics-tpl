@@ -28,6 +28,7 @@ vendor/
 __debug_*
 metricstest*
 statictest*
+staticlint
 
 *.html
 
