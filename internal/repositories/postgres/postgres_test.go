@@ -68,7 +68,8 @@ func (suite *PostgresStorageTestSuite) SetupSuite() {
 }
 
 func (suite *PostgresStorageTestSuite) TearDownSuite() {
-	suite.mockDB.Close()
+	err := suite.mockDB.Close()
+	assert.NoError(suite.T(), err)
 }
 
 func (suite *PostgresStorageTestSuite) TestAdd() {

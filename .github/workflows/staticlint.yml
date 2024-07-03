@@ -1,0 +1,22 @@
+name: go vet test custom staticlint
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  statictest:
+    runs-on: ubuntu-latest
+    container: golang:1.22
+    steps:
+
+      - name: Built staticlint binary
+        run: |
+          cd cmd/staticlint
+          go build -buildvcs=false -o staticlint
+          
+      - name: Run statictest
+        run: |
+          go vet -vettool=./cmd/staticlint/staticlint ./...

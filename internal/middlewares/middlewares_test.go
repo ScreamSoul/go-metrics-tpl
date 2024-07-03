@@ -33,10 +33,12 @@ func TestGzipDecompressMiddleware(t *testing.T) {
 			contentEncoding:      "gzip",
 			expectedResponseBody: "Hello, World!",
 			encodingFunc: func(body *bytes.Buffer, data string) {
+				var err error
 				gw := gzip.NewWriter(body)
-				_, err := gw.Write([]byte(data))
+				_, err = gw.Write([]byte(data))
 				assert.NoError(t, err)
-				gw.Close()
+				err = gw.Close()
+				assert.NoError(t, err)
 			},
 		},
 		{
@@ -136,7 +138,10 @@ func TestGzipCompressMiddleware(t *testing.T) {
 				// Decompress the response body
 				gr, err := gzip.NewReader(rr.Body)
 				assert.NoError(t, err)
-				defer gr.Close()
+				defer func() {
+					closeErr := gr.Close()
+					assert.NoError(t, closeErr)
+				}()
 
 				body, err := io.ReadAll(gr)
 				assert.NoError(t, err)

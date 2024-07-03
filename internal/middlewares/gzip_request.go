@@ -5,6 +5,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/screamsoul/go-metrics-tpl/pkg/utils"
 )
 
 type gzipReader struct {
@@ -44,7 +46,7 @@ func GzipDecompressMiddleware(next http.Handler) http.Handler {
 				return
 			}
 			r.Body = gr
-			defer gr.Close()
+			defer utils.CloseForse(gr)
 		}
 		next.ServeHTTP(w, r)
 	})

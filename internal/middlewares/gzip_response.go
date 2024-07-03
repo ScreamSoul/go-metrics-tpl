@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+
+	"github.com/screamsoul/go-metrics-tpl/pkg/utils"
 )
 
 type gzipResponseWriter struct {
@@ -48,7 +50,7 @@ func GzipCompressMiddleware(next http.Handler) http.Handler {
 			ow = gw
 			gw.w.Header().Set("Content-Encoding", "gzip")
 
-			defer gw.Close()
+			defer utils.CloseForse(gw)
 		}
 
 		next.ServeHTTP(ow, r)
