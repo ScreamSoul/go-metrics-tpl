@@ -44,6 +44,14 @@ func (s *LoggingSuite) TestInitialize() {
 	}
 }
 
+func (s *LoggingSuite) TestInitialize_Fail() {
+	s.Run("Error parse level", func() {
+		err := Initialize("fali lavel")
+		s.Require().Error(err)
+	})
+
+}
+
 func TestLoggingSuite(t *testing.T) {
 	suite.Run(t, new(LoggingSuite))
 }

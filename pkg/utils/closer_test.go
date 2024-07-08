@@ -2,6 +2,7 @@
 package utils_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/screamsoul/go-metrics-tpl/pkg/utils"
@@ -20,6 +21,15 @@ func (m *MockCloser) Close() error {
 func TestCloseForse_SuccessfulClose(t *testing.T) {
 	mockCloser := new(MockCloser)
 	mockCloser.On("Close").Return(nil)
+
+	utils.CloseForse(mockCloser)
+
+	mockCloser.AssertExpectations(t)
+}
+
+func TestCloseForse_ErrorClose(t *testing.T) {
+	mockCloser := new(MockCloser)
+	mockCloser.On("Close").Return(fmt.Errorf("Some err"))
 
 	utils.CloseForse(mockCloser)
 
