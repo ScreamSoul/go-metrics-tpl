@@ -6,6 +6,9 @@ services:
       dockerfile: build/docker/metrics/Dockerfile
       context: .
       target: server-app
+      args:
+        - SERVER_BUILD_VERSION=${SERVER_BUILD_VERSION:?Please configure SERVER_BUILD_VERSION in the .env file}
+        - SERVER_BUILD_COMMIT=${SERVER_BUILD_COMMIT:?Please configure SERVER_BUILD_COMMIT in the .env file}
     ports:
       - "8080:8080"
     expose:
@@ -31,7 +34,9 @@ services:
       dockerfile: build/docker/metrics/Dockerfile
       context: .
       target: agent-app
-    
+      args:
+        - AGENT_BUILD_VERSION=${AGENT_BUILD_VERSION:?Please configure AGENT_BUILD_VERSION in the .env file}
+        - AGENT_BUILD_COMMIT=${AGENT_BUILD_COMMIT:?Please configure AGENT_BUILD_COMMIT in the .env file}
     depends_on:
        postgres-db:
          condition: service_healthy
