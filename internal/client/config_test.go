@@ -1,6 +1,10 @@
 package client_test
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"os"
 	"testing"
 	"time"
@@ -26,9 +30,11 @@ func TestConfig(t *testing.T) {
 					BackoffIntervals: []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second},
 					BackoffRetries:   true,
 				},
-				ReportInterval: 10,
-				PollInterval:   2,
-				LogLevel:       "INFO",
+				Client: client.Client{
+					ReportInterval: 10,
+					PollInterval:   2,
+					LogLevel:       "INFO",
+				},
 			},
 			expectedServer: "http://localhost:8080",
 			expectedUpdate: "http://localhost:8080/updates/",
@@ -94,4 +100,37 @@ func TestBackoffIntervalConfig(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestUnmarshalText(t *testing.T) {
+	// Generate a new RSA private key for testing purposes
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	assert.NoError(t, err)
+
+	// Marshal the public key to PEM format
+	publicKeyBytes, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+	assert.NoError(t, err)
+	pemBlock := &pem.Block{
+		Type:  "RSA PUBLIC KEY",
+		Bytes: publicKeyBytes,
+	}
+	pemData := pem.EncodeToMemory(pemBlock)
+
+	// Create a temporary file and write the PEM data to it
+	tmpFile, err := os.CreateTemp("", "rsa-public-key-*.pem")
+	assert.NoError(t, err)
+	defer os.Remove(tmpFile.Name()) // Clean up
+
+	_, err = tmpFile.Write(pemData)
+	assert.NoError(t, err)
+	tmpFile.Close()
+
+	// Test UnmarshalText
+	cryptoPublicKey := client.CryptoPublicKey{}
+	err = cryptoPublicKey.UnmarshalText([]byte(tmpFile.Name()))
+	assert.NoError(t, err)
+
+	// Verify the public key was correctly decoded
+	assert.NotNil(t, cryptoPublicKey.Key)
+	assert.Equal(t, &privateKey.PublicKey, cryptoPublicKey.Key)
 }
