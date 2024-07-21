@@ -392,7 +392,7 @@ func (s *MetricRouterSuite) TestListMetrics() {
 	}
 
 	mockWithErr := func() {
-		var mockMetricList []metrics.Metrics
+		mockMetricList = []metrics.Metrics{}
 		s.mockDB.ListMock.Return(
 			mockMetricList, fmt.Errorf("some err"),
 		)

@@ -12,6 +12,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
 	"github.com/screamsoul/go-metrics-tpl/internal/models/metrics"
+	"github.com/screamsoul/go-metrics-tpl/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -68,7 +69,7 @@ func (suite *PostgresStorageTestSuite) SetupSuite() {
 }
 
 func (suite *PostgresStorageTestSuite) TearDownSuite() {
-	suite.mockDB.Close()
+	utils.CloseForse(suite.mockDB)
 }
 
 func (suite *PostgresStorageTestSuite) TestAdd() {

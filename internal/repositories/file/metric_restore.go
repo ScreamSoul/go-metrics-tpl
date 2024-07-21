@@ -9,6 +9,7 @@ import (
 	"github.com/screamsoul/go-metrics-tpl/internal/models/metrics"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories"
 	"github.com/screamsoul/go-metrics-tpl/pkg/logging"
+	"github.com/screamsoul/go-metrics-tpl/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -64,7 +65,7 @@ func (wrapper *FileRestoreMetricWrapper) Save(ctx context.Context) {
 		wrapper.logger.Error("error open or create file for write", zap.Error(err))
 		return
 	}
-	defer file.Close()
+	defer utils.CloseForse(file)
 
 	metricsList, err := wrapper.ms.List(ctx)
 	if err != nil {
@@ -78,7 +79,6 @@ func (wrapper *FileRestoreMetricWrapper) Save(ctx context.Context) {
 }
 
 func (wrapper *FileRestoreMetricWrapper) Load(ctx context.Context) {
-
 	wrapper.logger.Info("load metric from file")
 
 	file, err := os.OpenFile(wrapper.restoreFile, os.O_RDONLY|os.O_CREATE, 0666)
@@ -86,7 +86,7 @@ func (wrapper *FileRestoreMetricWrapper) Load(ctx context.Context) {
 		wrapper.logger.Error("error open or create file for read", zap.Error(err))
 		return
 	}
-	defer file.Close()
+	defer utils.CloseForse(file)
 
 	fileInfo, err := os.Stat(wrapper.restoreFile)
 	if err != nil || fileInfo.Size() == 0 {
@@ -95,8 +95,8 @@ func (wrapper *FileRestoreMetricWrapper) Load(ctx context.Context) {
 	}
 
 	metrics := []metrics.Metrics{}
-	if err := json.NewDecoder(file).Decode(&metrics); err != nil {
-		wrapper.logger.Error("error loading metrics from file", zap.Error(err))
+	if decodeErr := json.NewDecoder(file).Decode(&metrics); decodeErr != nil {
+		wrapper.logger.Error("error loading metrics from file", zap.Error(decodeErr))
 		return
 	}
 	err = wrapper.ms.BulkAdd(ctx, metrics)

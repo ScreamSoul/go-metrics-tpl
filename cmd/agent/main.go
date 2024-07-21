@@ -2,10 +2,12 @@ package main
 
 import (
 	"github.com/screamsoul/go-metrics-tpl/internal/client"
+	"github.com/screamsoul/go-metrics-tpl/internal/versions"
 	"github.com/screamsoul/go-metrics-tpl/pkg/logging"
 )
 
 func main() {
+	versions.PrintBuildInfo()
 
 	cfg, err := client.NewConfig()
 

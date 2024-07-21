@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/screamsoul/go-metrics-tpl/internal/repositories"
 	"github.com/screamsoul/go-metrics-tpl/internal/repositories/memory"
 	"github.com/screamsoul/go-metrics-tpl/pkg/backoff"
 	"github.com/screamsoul/go-metrics-tpl/pkg/logging"
@@ -16,7 +17,7 @@ import (
 
 func sender(
 	ctx context.Context,
-	metricRepo *memory.CollectionMetricStorage,
+	metricRepo repositories.CollectionMetric,
 	backoffIntervals []time.Duration,
 	metricClient *MetricsClient,
 	reportInterval time.Duration,
@@ -35,14 +36,9 @@ func sender(
 			sendMetric := func() error {
 				return metricClient.SendMetric(ctx, metricsList)
 			}
-			if backoffIntervals != nil {
-				if err := backoff.RetryWithBackoff(backoffIntervals, IsTemporaryNetworkError, sendMetric); err != nil {
-					logger.Error("retry send metric error", zap.Error(err))
-				}
-			} else {
-				if err := sendMetric(); err != nil {
-					logger.Error("send metric error", zap.Error(err))
-				}
+
+			if err := backoff.RetryWithBackoff(backoffIntervals, IsTemporaryNetworkError, sendMetric); err != nil {
+				logger.Error("send metric error", zap.Error(err))
 			}
 		}
 
@@ -52,7 +48,7 @@ func sender(
 
 func updater(
 	ctx context.Context,
-	metricRepo *memory.CollectionMetricStorage,
+	metricRepo repositories.CollectionMetric,
 	pollInterval time.Duration,
 ) {
 	for {

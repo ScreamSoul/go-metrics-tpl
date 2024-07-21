@@ -8,7 +8,7 @@ import (
 
 // MatrixStorage is the main interface defining methods for interacting with the repository.
 //
-//go:generate minimock -i github.com/screamsoul/go-metrics-tpl/internal/repositories.MetricStorage -o ../mocks/metric_storage_mock.go -g
+//go:generate minimock -i github.com/screamsoul/go-metrics-tpl/internal/repositories.MetricStorage -o ./mocks/metric_storage_mock.go -g
 type MetricStorage interface {
 	Add(ctx context.Context, m metrics.Metrics) error
 	BulkAdd(ctx context.Context, m []metrics.Metrics) error

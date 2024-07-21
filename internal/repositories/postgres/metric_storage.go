@@ -12,6 +12,8 @@ import (
 	"github.com/screamsoul/go-metrics-tpl/internal/models/metrics"
 	"github.com/screamsoul/go-metrics-tpl/pkg/backoff"
 	"github.com/screamsoul/go-metrics-tpl/pkg/logging"
+	"github.com/screamsoul/go-metrics-tpl/pkg/utils"
+
 	"go.uber.org/zap"
 )
 
@@ -38,7 +40,7 @@ func (storage *PostgresStorage) Add(ctx context.Context, metric metrics.Metrics)
 	if err != nil {
 		return err
 	}
-	defer stmt.Close()
+	defer utils.CloseForse(stmt)
 
 	exec := func() error {
 		_, err = stmt.ExecContext(ctx, metric.ID, metric.MType, metric.Delta, metric.Value)
@@ -61,14 +63,12 @@ func (storage *PostgresStorage) Get(ctx context.Context, metric *metrics.Metrics
 	var err error
 
 	exec := func() error {
-		err := row.Scan(&value, &delta)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				return fmt.Errorf("metric with Name %s not found", metric.ID)
-			}
-			return err
+		scanErr := row.Scan(&value, &delta)
+
+		if scanErr == sql.ErrNoRows {
+			return fmt.Errorf("metric with Name %s not found", metric.ID)
 		}
-		return nil
+		return scanErr
 	}
 
 	err = backoff.RetryWithBackoff(storage.backoffInteraval, IsTemporaryConnectionError, exec)
@@ -125,8 +125,8 @@ func (storage *PostgresStorage) BulkAdd(ctx context.Context, metricList []metric
 		return err
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil {
-			storage.logging.Warn("rollback transaction error", zap.Error(err))
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			storage.logging.Warn("rollback transaction error", zap.Error(rollbackErr))
 		}
 	}()
 
@@ -140,7 +140,7 @@ func (storage *PostgresStorage) BulkAdd(ctx context.Context, metricList []metric
 	if err != nil {
 		return err
 	}
-	defer stmt.Close()
+	defer utils.CloseForse(stmt)
 
 	for _, metric := range metricList {
 		var delta sql.NullInt64
