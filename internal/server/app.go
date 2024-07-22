@@ -56,6 +56,7 @@ func Start(ctx context.Context, cfg *Config, logger *zap.Logger) {
 	var router = routers.NewMetricRouter(
 		metricServer,
 		middlewares.LoggingMiddleware,
+		middlewares.NewDecryptMiddleware(cfg.CryptoKey.Key),
 		middlewares.NewHashSumHeaderMiddleware(cfg.HashBodyKey),
 		middlewares.GzipDecompressMiddleware,
 		middlewares.GzipCompressMiddleware,
