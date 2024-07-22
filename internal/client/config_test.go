@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/screamsoul/go-metrics-tpl/internal/client"
+	"github.com/screamsoul/go-metrics-tpl/pkg/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -119,11 +120,12 @@ func TestUnmarshalText(t *testing.T) {
 	// Create a temporary file and write the PEM data to it
 	tmpFile, err := os.CreateTemp("", "rsa-public-key-*.pem")
 	assert.NoError(t, err)
-	defer os.Remove(tmpFile.Name()) // Clean up
-
+	defer func() {
+		assert.NoError(t, os.Remove(tmpFile.Name()))
+	}()
 	_, err = tmpFile.Write(pemData)
 	assert.NoError(t, err)
-	tmpFile.Close()
+	utils.CloseForse(tmpFile)
 
 	// Test UnmarshalText
 	cryptoPublicKey := client.CryptoPublicKey{}
