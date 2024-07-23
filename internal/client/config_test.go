@@ -145,13 +145,14 @@ func TestConfigFile(t *testing.T) {
 
 	require.NoError(t, err)
 
-	file.Write([]byte(`
+	_, err = file.Write([]byte(`
 {
 	"address": "localhost:1234",
 	"report_interval": "1s",
 	"poll_interval": "1s", 
 	"crypto_key": "/path/to/key.pem"
 }`))
+	require.NoError(t, err)
 
 	require.NoError(t, os.Setenv("CONFIG", file.Name()))
 	defer func() {
