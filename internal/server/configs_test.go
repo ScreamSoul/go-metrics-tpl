@@ -47,7 +47,7 @@ func TestBackoffIntervalConfig(t *testing.T) {
 
 	for _, tt := range testTable {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Args = nil
+			os.Args = os.Args[:1]
 			for k, v := range tt.envVars {
 				t.Setenv(k, v)
 			}

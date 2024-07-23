@@ -10,16 +10,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestFillFromFile_NoConfigPath(t *testing.T) {
-	var cfg utils.ConfigFile
-	os.Args = nil
+type TestConfig struct {
+	Name string
+}
 
-	utils.FillFromFile(&cfg)
-	assert.Equal(t, "", cfg.Path, "Expected Path to remain empty when no config file is specified")
+func TestFillFromFile_NoConfigPath(t *testing.T) {
+	cfg := TestConfig{}
+
+	err := utils.FillFromFile(&cfg)
+	require.NoError(t, err)
+	assert.Equal(t, "", cfg.Name, "Expected Path to remain empty when no config file is specified")
 }
 
 func TestFillFromFile_FileReadError(t *testing.T) {
-	os.Args = nil
 
 	require.NoError(t, os.Setenv("CONFIG", "/non/existent/path"))
 	defer func() {
@@ -32,14 +35,13 @@ func TestFillFromFile_FileReadError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	utils.FillFromFile(&cfg)
+	err = utils.FillFromFile(&cfg)
+	require.Error(t, err)
 	// Since FillFromFile doesn't return an error, we check if cfg remains unchanged after attempting to fill it from a non-existent file
 	assert.Equal(t, map[string]interface{}{"key": "value"}, cfg)
 }
 
 func TestFillFromFile_Success(t *testing.T) {
-	os.Args = nil
-
 	tmpfile, err := os.CreateTemp("", "testconfig")
 	if err != nil {
 		t.Fatal(err)
@@ -48,11 +50,11 @@ func TestFillFromFile_Success(t *testing.T) {
 		assert.NoError(t, os.Remove(tmpfile.Name())) // Clean up
 	}()
 
-	configData := []byte(`{"Path":"/some/path"}`)
-	if _, err := tmpfile.Write(configData); err != nil {
+	configData := []byte(`{"Name":"some name"}`)
+	if _, err = tmpfile.Write(configData); err != nil {
 		t.Fatal(err)
 	}
-	if err := tmpfile.Close(); err != nil {
+	if err = tmpfile.Close(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -61,7 +63,8 @@ func TestFillFromFile_Success(t *testing.T) {
 		assert.NoError(t, os.Unsetenv("CONFIG"))
 	}()
 
-	var cfg utils.ConfigFile
-	utils.FillFromFile(&cfg)
-	assert.Equal(t, "/some/path", cfg.Path, "Expected Path to match the value from the temporary config file")
+	cfg := TestConfig{}
+	err = utils.FillFromFile(&cfg)
+	require.NoError(t, err)
+	assert.Equal(t, "some name", cfg.Name, "Expected Path to match the value from the temporary config file")
 }

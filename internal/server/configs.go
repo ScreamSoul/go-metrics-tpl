@@ -63,7 +63,10 @@ func (cpk *CryptoPublicKey) UnmarshalText(b []byte) error {
 func NewConfig() (*Config, error) {
 	var cfg Config
 
-	utils.FillFromFile(&cfg)
+	err := utils.FillFromFile(&cfg)
+	if err != nil {
+		return nil, err
+	}
 
 	if err := arg.Parse(&cfg); err != nil {
 		return nil, err

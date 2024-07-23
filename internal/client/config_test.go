@@ -86,7 +86,7 @@ func TestBackoffIntervalConfig(t *testing.T) {
 
 	for _, tt := range testTable {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Args = nil
+			os.Args = os.Args[:1]
 			for k, v := range tt.envVars {
 				t.Setenv(k, v)
 			}
@@ -139,7 +139,7 @@ func TestUnmarshalText(t *testing.T) {
 }
 
 func TestConfigFile(t *testing.T) {
-	os.Args = nil
+	os.Args = os.Args[:1]
 
 	file, err := os.CreateTemp("", "config_*.json")
 
@@ -148,8 +148,8 @@ func TestConfigFile(t *testing.T) {
 	_, err = file.Write([]byte(`
 {
 	"address": "localhost:1234",
-	"report_interval": "1s",
-	"poll_interval": "1s", 
+	"report_interval": 1,
+	"poll_interval": 1, 
 	"crypto_key": "/path/to/key.pem"
 }`))
 	require.NoError(t, err)

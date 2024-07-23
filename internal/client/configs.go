@@ -74,7 +74,10 @@ func (c *Config) GetUpdateMetricURL() string {
 func NewConfig() (*Config, error) {
 	var cfg Config
 
-	utils.FillFromFile(&cfg)
+	err := utils.FillFromFile(&cfg)
+	if err != nil {
+		return nil, err
+	}
 
 	arg.MustParse(&cfg)
 
