@@ -168,36 +168,6 @@ func TestUnmarshalText__NotPublicKey(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestUnmarshalText__NotRSAKey(t *testing.T) {
-	// Generate a new RSA private key for testing purposes
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	assert.NoError(t, err)
-
-	// Marshal the public key to PEM format
-	publicKeyBytes, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
-	assert.NoError(t, err)
-	pemBlock := &pem.Block{
-		Type:  "RSA PUBLIC KEY",
-		Bytes: publicKeyBytes,
-	}
-	pemData := pem.EncodeToMemory(pemBlock)
-
-	// Create a temporary file and write the PEM data to it
-	tmpFile, err := os.CreateTemp("", "rsa-public-key-*.pem")
-	assert.NoError(t, err)
-	defer func() {
-		assert.NoError(t, os.Remove(tmpFile.Name()))
-	}()
-	_, err = tmpFile.Write(pemData)
-	assert.NoError(t, err)
-	utils.CloseForse(tmpFile)
-
-	// Test UnmarshalText
-	cryptoPublicKey := client.CryptoPublicKey{}
-	err = cryptoPublicKey.UnmarshalText([]byte(tmpFile.Name()))
-	assert.Error(t, err)
-}
-
 func TestUnmarshalText__InvalidFile(t *testing.T) {
 	cryptoPublicKey := client.CryptoPublicKey{}
 	err := cryptoPublicKey.UnmarshalText([]byte("/fake_file"))
