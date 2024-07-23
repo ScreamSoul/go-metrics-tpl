@@ -15,7 +15,7 @@ import (
 )
 
 type Postgres struct {
-	DatabaseDSN      string          `arg:"-d,env:DATABASE_DSN" default:"" help:"Строка подключения к базе Postgres"`
+	DatabaseDSN      string          `arg:"-d,env:DATABASE_DSN" default:"" help:"Строка подключения к базе Postgres" json:"database_dsn"`
 	BackoffIntervals []time.Duration `arg:"--b-intervals,env:BACKOFF_INTERVALS" help:"Интервалы повтора запроса (обязательно если (default=1s,3s,5s)"`
 	BackoffRetries   bool            `arg:"--backoff,env:BACKOFF_RETRIES" default:"true" help:"Повтор запроса при разрыве соединения"`
 }
@@ -26,14 +26,14 @@ type CryptoPublicKey struct {
 
 type Config struct {
 	Postgres
-	ListenAddress   string          `arg:"-a,env:ADDRESS" default:"localhost:8080" help:"Адрес и порт сервера"`
+	ListenAddress   string          `arg:"-a,env:ADDRESS" default:"localhost:8080" help:"Адрес и порт сервера" json:"address"`
 	LogLevel        string          `arg:"--ll,env:LOG_LEVEL" default:"INFO" help:"Уровень логирования"`
-	StoreInterval   int             `arg:"-i,env:STORE_INTERVAL" default:"300" help:"Интервал времени в секундах, по истечении которого текущие показания сервера сохраняются на диск"`
-	FileStoragePath string          `arg:"-f,env:FILE_STORAGE_PATH" default:"/tmp/metrics-db.json" help:"Полное имя файла, куда сохраняются текущие значения"`
-	Restore         bool            `arg:"-r,env:RESTORE" default:"true" help:"Загружать или нет ранее сохранённые значения из указанного файла при старте сервера"`
+	StoreInterval   int             `arg:"-i,env:STORE_INTERVAL" default:"300" help:"Интервал времени в секундах, по истечении которого текущие показания сервера сохраняются на диск" json:"store_interval"`
+	FileStoragePath string          `arg:"-f,env:FILE_STORAGE_PATH" default:"/tmp/metrics-db.json" help:"Полное имя файла, куда сохраняются текущие значения" json:"store_file"`
+	Restore         bool            `arg:"-r,env:RESTORE" default:"true" help:"Загружать или нет ранее сохранённые значения из указанного файла при старте сервера" json:"restore"`
 	HashBodyKey     string          `arg:"-k,env:KEY" default:"" help:"hash key"`
 	Debug           bool            `arg:"--debug,env:DEBUG" default:"false" help:"debug mode"`
-	CryptoKey       CryptoPublicKey `arg:"--crypto-key,env:CRYPTO_KEY" default:"" help:"the path to the file with the public key"`
+	CryptoKey       CryptoPublicKey `arg:"--crypto-key,env:CRYPTO_KEY" default:"" help:"the path to the file with the public key" json:"crypto_key"`
 }
 
 func (cpk *CryptoPublicKey) UnmarshalText(b []byte) error {
