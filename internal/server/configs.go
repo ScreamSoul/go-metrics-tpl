@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/alexflint/go-arg"
+	"github.com/screamsoul/go-metrics-tpl/pkg/utils"
 )
 
 type Postgres struct {
@@ -61,6 +62,8 @@ func (cpk *CryptoPublicKey) UnmarshalText(b []byte) error {
 
 func NewConfig() (*Config, error) {
 	var cfg Config
+
+	utils.FillFromFile(&cfg)
 
 	if err := arg.Parse(&cfg); err != nil {
 		return nil, err

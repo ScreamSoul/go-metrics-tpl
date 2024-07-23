@@ -12,6 +12,7 @@ import (
 	"github.com/screamsoul/go-metrics-tpl/internal/client"
 	"github.com/screamsoul/go-metrics-tpl/pkg/utils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConfig(t *testing.T) {
@@ -135,4 +136,32 @@ func TestUnmarshalText(t *testing.T) {
 	// Verify the public key was correctly decoded
 	assert.NotNil(t, cryptoPublicKey.Key)
 	assert.Equal(t, &privateKey.PublicKey, cryptoPublicKey.Key)
+}
+
+func TestConfigFile(t *testing.T) {
+	os.Args = nil
+
+	file, err := os.CreateTemp("", "config_*.json")
+
+	require.NoError(t, err)
+
+	file.Write([]byte(`
+{
+	"address": "localhost:1234",
+	"report_interval": "1s",
+	"poll_interval": "1s", 
+	"crypto_key": "/path/to/key.pem"
+}`))
+
+	require.NoError(t, os.Setenv("CONFIG", file.Name()))
+	defer func() {
+		assert.NoError(t, os.Unsetenv("CONFIG"))
+	}()
+
+	cfg, err := client.NewConfig()
+
+	require.NoError(t, err)
+
+	assert.Equal(t, "localhost:1234", cfg.Server.ListenServerHost)
+
 }

@@ -82,7 +82,9 @@ func TestUnmarshalText(t *testing.T) {
 	// Create a temporary file to write the PEM-encoded private key
 	tmpfile, err := os.CreateTemp("", "testkey*.pem")
 	assert.NoError(t, err)
-	defer assert.NoError(t, os.Remove(tmpfile.Name())) // Clean up
+	defer func() {
+		assert.NoError(t, os.Remove(tmpfile.Name())) // Clean up
+	}()
 
 	_, err = tmpfile.Write(privPEM)
 	assert.NoError(t, err)
