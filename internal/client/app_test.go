@@ -67,7 +67,7 @@ func TestSender_SuccessfullySendsMetrics(t *testing.T) {
 
 	// Create a MetricsClient instance
 	metricClient := NewMetricsClient(
-		false, "", server.URL,
+		false, "", server.URL, nil,
 	)
 	mockMetricStorage := new(MockMetricStorage)
 
